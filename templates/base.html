@@ -1,14 +1,88 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0b0b0d"><title>{% block title %}NRP Store{% endblock %}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static',filename='css/style.css') }}"></head><body>
-<header class="topbar"><a class="brand" href="{{ url_for('index') }}"><span class="brand-mark">O</span> NRP Store</a>
-<button class="menu-toggle" onclick="document.querySelector('.navlinks').classList.toggle('open')">☰</button>
-<nav class="navlinks"><a href="{{ url_for('index') }}">Home</a><a href="{{ url_for('index') }}#products">Shop</a>
-{% if current_user %}<a href="{{ url_for('my_orders') }}">My orders</a>{% if current_user.is_admin %}<a href="{{ url_for('admin') }}">Admin</a>{% endif %}<a href="{{ url_for('logout') }}">Logout</a>
-{% else %}<a href="{{ url_for('login') }}">Sign in</a>{% endif %}
-<a class="cart-link" href="{{ url_for('cart') }}">Cart <b>{{ cart_count }}</b></a></nav></header>
-<main class="container">{% with messages=get_flashed_messages(with_categories=true) %}{% if messages %}<div class="alerts">{% for category,message in messages %}<div class="alert {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
-{% block content %}{% endblock %}</main>
-<footer><div class="brand">NRP Store</div><p>Good finds. Better prices. Made for everyday living.</p><small>© {{ 2026 }} NRP Store. Demo storefront.</small></footer>
-<script src="{{ url_for('static',filename='js/main.js') }}"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#102a43">
+<title>{% block title %}NRP STORE{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static',filename='css/style.css') }}">
+<style>
+body {background:#f5f7fa;color:#172b42;font-family:'DM Sans',sans-serif;margin:0}
+.topbar {background:#102a43;color:white;display:flex;align-items:center;justify-content:space-between;padding:15px 5%;position:relative}
+.brand {color:white;text-decoration:none;font-size:22px;font-weight:800}
+.brand-mark {color:#52d273}
+.navlinks {display:flex;align-items:center;gap:20px}
+.navlinks a {color:white;text-decoration:none;font-weight:600}
+.menu-toggle {background:#183e5d;color:white;border:0;border-radius:8px;padding:9px 13px;font-size:22px;cursor:pointer}
+.admin-menu {position:absolute;right:5%;top:65px;background:white;border-radius:12px;box-shadow:0 8px 25px #0002;padding:12px;display:none;z-index:1000;min-width:180px}
+.admin-menu.open {display:grid;gap:12px}
+.admin-menu a {color:#102a43;text-decoration:none;padding:7px}
+.container {max-width:1200px;margin:auto;padding:15px}
+.bottom-nav {position:fixed;bottom:0;left:0;right:0;z-index:999;background:white;border-top:1px solid #e5eaf0;display:flex;justify-content:space-around;padding:9px 3px;box-shadow:0 -3px 15px #0001}
+.bottom-nav a {display:flex;flex-direction:column;align-items:center;gap:3px;color:#102a43;text-decoration:none;font-size:19px}
+.bottom-nav span {font-size:10px}
+footer {margin-bottom:65px}
+@media(min-width:700px){.bottom-nav{display:none}}
+@media(max-width:699px){.topbar{flex-wrap:wrap}.navlinks{gap:12px}.navlinks a{font-size:13px}.container{padding:10px}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+<a class="brand" href="{{ url_for('index') }}"><span class="brand-mark">N</span> NRP STORE</a>
+
+{% if current_user and current_user.is_admin %}
+<button class="menu-toggle" onclick="document.querySelector('.admin-menu').classList.toggle('open')">☰</button>
+<div class="admin-menu">
+<a href="{{ url_for('admin') }}">Dashboard</a>
+<a href="{{ url_for('admin') }}">Add New Product</a>
+<a href="{{ url_for('admin') }}">Manage Products & Orders</a>
+<a href="{{ url_for('logout') }}">Logout</a>
+</div>
+{% endif %}
+
+<nav class="navlinks">
+<a href="{{ url_for('index') }}">Home</a>
+<a href="{{ url_for('index') }}#products">Products</a>
+{% if current_user %}
+<a href="{{ url_for('my_orders') }}">Orders</a>
+<a href="{{ url_for('logout') }}">Logout</a>
+{% else %}
+<a href="{{ url_for('login') }}">Login</a>
+{% endif %}
+<a href="{{ url_for('cart') }}">Cart ({{ cart_count }})</a>
+</nav>
+</header>
+
+<main class="container">
+{% with messages=get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="alerts">
+{% for category,message in messages %}
+<div class="alert {{ category }}">{{ message }}</div>
+{% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+{% block content %}{% endblock %}
+</main>
+
+<nav class="bottom-nav">
+<a href="{{ url_for('index') }}">🏠<span>Home</span></a>
+<a href="{{ url_for('my_orders') if current_user else url_for('login') }}">🛍️<span>Orders</span></a>
+<a href="{{ url_for('index') }}#products">📦<span>Products</span></a>
+<a href="{{ url_for('login') if not current_user else url_for('my_orders') }}">👤<span>Profile</span></a>
+<a href="{{ url_for('cart') }}">🛒<span>Cart</span></a>
+</nav>
+
+<footer>
+<div class="brand">NRP STORE</div>
+<p>Good finds. Better prices.</p>
+<small>© 2026 NRP STORE</small>
+</footer>
+
+<script src="{{ url_for('static',filename='js/main.js') }}"></script>
+</body>
+</html>
