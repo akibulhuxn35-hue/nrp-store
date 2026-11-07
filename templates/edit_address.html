@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Edit Address — NRP STORE{% endblock %}
+{% block content %}
+<section class="section narrow">
+<h1 class="page-title">Edit Address<span class="gold-dot">.</span></h1>
+
+<form method="post" class="stack-form checkout-form">
+<label>Full name
+<input name="full_name" value="{{ address.full_name }}" required>
+</label>
+<label>Mobile number
+<input name="phone" type="tel" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" value="{{ address.phone }}" required>
+</label>
+<label>PIN code
+<input name="pincode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" value="{{ address.pincode }}" required>
+</label>
+<label>Flat, House no., Building
+<input name="house" value="{{ address.house }}" required>
+</label>
+<label>Area, Street, Village
+<input name="area" value="{{ address.area }}" required>
+</label>
+<label>Landmark
+<input name="landmark" value="{{ address.landmark }}">
+</label>
+<label>Town / City
+<input name="city" value="{{ address.city }}" required>
+</label>
+<label>State
+<input name="state" value="{{ address.state }}" required>
+</label>
+<label>Address type
+<select name="address_type">
+<option value="Home" {% if address.address_type == 'Home' %}selected{% endif %}>Home</option>
+<option value="Work" {% if address.address_type == 'Work' %}selected{% endif %}>Work</option>
+</select>
+</label>
+<button class="btn btn-gold full">Update Address</button>
+</form>
+</section>
+{% endblock %}

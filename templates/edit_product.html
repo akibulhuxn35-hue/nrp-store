@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Edit Product — NRP Store{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="panel">
+    <span class="eyebrow">YOUR PRODUCT</span>
+    <h1 class="page-title">Edit Product<span class="gold-dot">.</span></h1>
+    <form method="post" class="stack-form">
+      <label>Product name
+        <input name="name" value="{{ product.name }}" required>
+      </label>
+      <label>Description
+        <textarea name="description" rows="4">{{ product.description }}</textarea>
+      </label>
+      <div class="two-fields">
+        <label>Price (₹)
+          <input type="number" name="price" min="0" step=".01" value="{{ product.price }}" required>
+        </label>
+        <label>Stock
+          <input type="number" name="stock" min="0" value="{{ product.stock }}" required>
+        </label>
+      </div>
+      <label>Category
+        <input name="category" value="{{ product.category }}">
+      </label>
+      <label>Image URL
+        <input name="image" value="{{ product.image }}">
+      </label>
+      <label class="check-label">
+        <input type="checkbox" name="featured" {% if product.featured %}checked{% endif %}>
+        Feature this product
+      </label>
+      <button class="btn btn-gold full">Save Changes</button>
+      <a class="mini-btn" href="{{ url_for('admin') }}">Cancel</a>
+    </form>
+  </div>
+</section>
+{% endblock %}

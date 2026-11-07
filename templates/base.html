@@ -48,6 +48,7 @@ footer {margin-bottom:65px}
 <a href="{{ url_for('index') }}#products">Products</a>
 {% if current_user %}
 <a href="{{ url_for('my_orders') }}">Orders</a>
+<a href="{{ url_for('addresses') }}">My Addresses</a>
 <a href="{{ url_for('logout') }}">Logout</a>
 {% else %}
 <a href="{{ url_for('login') }}">Login</a>

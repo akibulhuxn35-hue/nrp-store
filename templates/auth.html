@@ -1,4 +1,57 @@
-{% extends "base.html" %}{% block title %}{{ 'Create account' if mode=='register' else 'Sign in' }} — NRP Store{% endblock %}{% block content %}
-<div class="auth-wrap"><div class="auth-card"><span class="eyebrow">WELCOME TO ONLINE SALE</span><h1>{{ 'Create your account' if mode=='register' else 'Good to see you.' }}</h1><p>{{ 'Join us for a better way to shop.' if mode=='register' else 'Sign in to continue shopping.' }}</p>
-<form method="post" class="stack-form">{% if mode=='register' %}<label>Full name<input name="name" required autocomplete="name"></label>{% endif %}<label>Email address<input name="email" type="email" required autocomplete="email"></label><label>Password<input name="password" type="password" minlength="8" required autocomplete="{{ 'new-password' if mode=='register' else 'current-password' }}"></label><button class="btn btn-gold full">{{ 'Create account' if mode=='register' else 'Sign in' }} ↗</button></form>
-<p class="switch-auth">{% if mode=='register' %}Already registered? <a href="{{ url_for('login') }}">Sign in</a>{% else %}New here? <a href="{{ url_for('register') }}">Create an account</a>{% endif %}</p></div></div>{% endblock %}
+{% extends "base.html" %}
+{% block title %}{{ 'Create Account' if mode=='register' else 'Login' }} — NRP STORE{% endblock %}
+{% block content %}
+
+<style>
+.auth-page{min-height:75vh;display:flex;align-items:center;justify-content:center;padding:35px 15px;background:#f5f7fa}
+.auth-box{width:100%;max-width:430px;background:#fff;padding:32px 25px;border-radius:18px;box-shadow:0 8px 35px #10213a12}
+.auth-logo{text-align:center;font-size:25px;font-weight:900;color:#102c52;letter-spacing:1px}
+.auth-logo span{color:#16a36a}
+.auth-tag{text-align:center;color:#718096;font-size:13px;margin:8px 0 28px}
+.auth-box h1{font-size:25px;color:#172b4d;margin-bottom:8px}
+.auth-sub{color:#718096;font-size:14px;margin-bottom:25px}
+.auth-box label{display:block;font-size:13px;font-weight:700;color:#26364d;margin:15px 0 7px}
+.auth-box input{width:100%;padding:14px;border:1px solid #dce2eb;border-radius:9px;font-size:15px;outline:none}
+.auth-box input:focus{border-color:#1769aa;box-shadow:0 0 0 3px #1769aa15}
+.auth-submit{width:100%;border:0;border-radius:9px;padding:15px;background:#1769aa;color:#fff;font-size:16px;font-weight:800;margin-top:22px;cursor:pointer}
+.auth-switch{text-align:center;margin-top:22px;color:#68778c;font-size:14px}
+.auth-switch a{color:#1769aa;font-weight:800;text-decoration:none}
+.auth-note{text-align:center;font-size:12px;color:#8994a5;margin-top:22px}
+@media(max-width:480px){.auth-page{padding:20px 12px}.auth-box{padding:27px 20px}}
+</style>
+
+<div class="auth-page">
+ <div class="auth-box">
+  <div class="auth-logo">NRP <span>STORE</span></div>
+  <div class="auth-tag">SHOP SMART. LIVE BETTER.</div>
+
+  <h1>{{ 'Create your account' if mode=='register' else 'Welcome back!' }}</h1>
+  <p class="auth-sub">{{ 'Join NRP STORE and discover something special.' if mode=='register' else 'Sign in to continue shopping.' }}</p>
+
+  <form method="post" class="stack-form">
+   {% if mode=='register' %}
+   <label>Full name</label>
+   <input name="name" placeholder="Enter your full name" required autocomplete="name">
+   {% endif %}
+
+   <label>Email address</label>
+   <input name="email" type="email" placeholder="Enter your email" required autocomplete="email">
+
+   <label>Password</label>
+   <input name="password" type="password" minlength="8" placeholder="Enter your password" required autocomplete="{{ 'new-password' if mode=='register' else 'current-password' }}">
+
+   <button type="submit" class="auth-submit">{{ 'CREATE ACCOUNT' if mode=='register' else 'LOGIN SECURELY' }} →</button>
+  </form>
+
+  <div class="auth-switch">
+   {% if mode=='register' %}
+   Already have an account? <a href="{{ url_for('login') }}">Login</a>
+   {% else %}
+   New to NRP STORE? <a href="{{ url_for('register') }}">Create account</a>
+   {% endif %}
+  </div>
+
+  <div class="auth-note">Your shopping journey starts here.</div>
+ </div>
+</div>
+{% endblock %}

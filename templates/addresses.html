@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}My Addresses — NRP STORE{% endblock %}
+{% block content %}
+<section class="section narrow">
+<h1 class="page-title">My Addresses<span class="gold-dot">.</span></h1>
+<h3>Add a delivery address</h3>
+
+<form method="post" class="stack-form checkout-form">
+<label>Full name<input name="full_name" required></label>
+<label>Mobile number<input name="phone" type="tel" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" required></label>
+<label>PIN code<input name="pincode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></label>
+<label>Flat, House no., Building<input name="house" required></label>
+<label>Area, Street, Village<input name="area" required></label>
+<label>Landmark (optional)<input name="landmark"></label>
+<label>Town / City<input name="city" required></label>
+<label>State<input name="state" required></label>
+<label>Address type
+<select name="address_type">
+<option value="Home">Home</option>
+<option value="Work">Work</option>
+</select></label>
+<button class="btn btn-gold full">Save Address</button>
+</form>
+
+<h3>Saved addresses</h3>
+{% for a in addresses %}
+<div class="checkout-summary">
+<b>{{ a.full_name }} — {{ a.address_type }}</b>
+<p>{{ a.phone }}</p>
+<p>{{ a.house }}, {{ a.area }}, {{ a.landmark }}</p>
+<p>{{ a.city }}, {{ a.state }} - {{ a.pincode }}</p>
+{% if a.is_default %}
+<b>Default address</b>
+{% else %}
+<form method="post" action="{{ url_for('default_address', address_id=a.id) }}">
+<button class="btn">Make Default</button>
+</form>
+{% endif %}
+<a class="btn" href="{{ url_for('edit_address', address_id=a.id) }}">Edit</a>
+<form method="post" action="{{ url_for('delete_address', address_id=a.id) }}" onsubmit="return confirm('Delete this address?')">
+<button class="btn">Delete</button>
+</form>
+</div>
+{% else %}
+<p class="muted">No saved addresses yet.</p>
+{% endfor %}
+</section>
+{% endblock %}

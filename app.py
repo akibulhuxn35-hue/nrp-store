@@ -48,6 +48,27 @@ def init_db():
       FOREIGN KEY(order_id) REFERENCES orders(id)
     );
     """)
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS addresses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        full_name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        pincode TEXT NOT NULL,
+        house TEXT NOT NULL,
+        area TEXT NOT NULL,
+        landmark TEXT DEFAULT '',
+        city TEXT NOT NULL,
+        state TEXT NOT NULL,
+        address_type TEXT NOT NULL DEFAULT 'Home',
+        is_default INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+    """)
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(products)")}
+    if "owner_id" not in columns:
+        conn.execute("ALTER TABLE products ADD COLUMN owner_id INTEGER")
+
     count = conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
     if count == 0:
         samples = [
@@ -67,6 +88,10 @@ def init_db():
     if not existing:
         conn.execute("INSERT INTO users(name,email,password,is_admin) VALUES(?,?,?,1)",
                      ("Store Admin", admin_email, generate_password_hash(admin_password)))
+    admin_row = conn.execute("SELECT id FROM users WHERE email=?", (admin_email,)).fetchone()
+    if admin_row:
+        conn.execute("UPDATE products SET owner_id=? WHERE owner_id IS NULL", (admin_row[0],))
+
     conn.commit()
     conn.close()
 
@@ -188,39 +213,235 @@ def update_cart():
     flash("Cart updated.", "success")
     return redirect(url_for("cart"))
 
-@app.route("/checkout", methods=["GET","POST"])
+@app.route("/addresses", methods=["GET", "POST"])
+@login_required
+def addresses():
+    uid = session["user"]["id"]
+    conn = db()
+
+    if request.method == "POST":
+        name = request.form.get("full_name", "").strip()
+        phone = request.form.get("phone", "").strip()
+        pincode = request.form.get("pincode", "").strip()
+        house = request.form.get("house", "").strip()
+        area = request.form.get("area", "").strip()
+        landmark = request.form.get("landmark", "").strip()
+        city = request.form.get("city", "").strip()
+        state = request.form.get("state", "").strip()
+        address_type = request.form.get("address_type", "Home")
+        if (not all([name, phone, pincode, house, area, city, state])
+                or not phone.isdigit() or len(phone) != 10
+                or not pincode.isdigit() or len(pincode) != 6
+                or address_type not in ("Home", "Work")):
+            flash("Please enter valid delivery details.", "danger")
+        else:
+            is_default = 1 if not conn.execute(
+                "SELECT id FROM addresses WHERE user_id=?", (uid,)
+            ).fetchone() else 0
+            conn.execute(
+                """INSERT INTO addresses
+                (user_id,full_name,phone,pincode,house,area,landmark,city,state,address_type,is_default)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+                (uid,name,phone,pincode,house,area,landmark,city,state,address_type,is_default)
+            )
+            conn.commit()
+            flash("Delivery address saved.", "success")
+            return redirect(url_for("addresses"))
+
+    saved = conn.execute(
+        "SELECT * FROM addresses WHERE user_id=? ORDER BY is_default DESC,id DESC",
+        (uid,)
+    ).fetchall()
+    return render_template("addresses.html", addresses=saved)
+
+
+
+@app.route("/addresses/<int:address_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_address(address_id):
+    uid = session["user"]["id"]
+    conn = db()
+    address = conn.execute(
+        "SELECT * FROM addresses WHERE id=? AND user_id=?",
+        (address_id, uid)
+    ).fetchone()
+    if not address:
+        abort(404)
+
+    if request.method == "POST":
+        fields = {
+            key: request.form.get(key, "").strip()
+            for key in ("full_name", "phone", "pincode", "house",
+                        "area", "landmark", "city", "state")
+        }
+        address_type = request.form.get("address_type", "Home")
+        if (not all(fields[k] for k in
+                    ("full_name", "phone", "pincode", "house",
+                     "area", "city", "state"))
+                or not fields["phone"].isdigit()
+                or len(fields["phone"]) != 10
+                or not fields["pincode"].isdigit()
+                or len(fields["pincode"]) != 6
+                or address_type not in ("Home", "Work")):
+            flash("Please enter valid delivery details.", "danger")
+        else:
+            conn.execute("""
+                UPDATE addresses SET full_name=?, phone=?, pincode=?,
+                house=?, area=?, landmark=?, city=?, state=?, address_type=?
+                WHERE id=? AND user_id=?
+            """, (*fields.values(), address_type, address_id, uid))
+            conn.commit()
+            flash("Address updated.", "success")
+            return redirect(url_for("addresses"))
+
+    return render_template("edit_address.html", address=address)
+
+
+@app.route("/addresses/<int:address_id>/delete", methods=["POST"])
+@login_required
+def delete_address(address_id):
+    uid = session["user"]["id"]
+    conn = db()
+    conn.execute(
+        "DELETE FROM addresses WHERE id=? AND user_id=?",
+        (address_id, uid)
+    )
+    conn.commit()
+    flash("Address deleted if it existed.", "success")
+    return redirect(url_for("addresses"))
+
+
+@app.route("/addresses/<int:address_id>/default", methods=["POST"])
+@login_required
+def default_address(address_id):
+    uid = session["user"]["id"]
+    conn = db()
+    address = conn.execute(
+        "SELECT id FROM addresses WHERE id=? AND user_id=?",
+        (address_id, uid)
+    ).fetchone()
+    if not address:
+        abort(404)
+
+    conn.execute("UPDATE addresses SET is_default=0 WHERE user_id=?", (uid,))
+    conn.execute(
+        "UPDATE addresses SET is_default=1 WHERE id=? AND user_id=?",
+        (address_id, uid)
+    )
+    conn.commit()
+    flash("Default address updated.", "success")
+    return redirect(url_for("addresses"))
+
+
+@app.route("/checkout", methods=["GET", "POST"])
 @login_required
 def checkout():
+    uid = session["user"]["id"]
+    conn = db()
     cart = session.get("cart", {})
     products, total = [], 0
+
     for pid, qty in cart.items():
-        p = db().execute("SELECT * FROM products WHERE id=?", (pid,)).fetchone()
+        p = conn.execute("SELECT * FROM products WHERE id=?", (pid,)).fetchone()
         if p:
-            products.append((p,int(qty)))
-            total += p["price"]*int(qty)
+            products.append((p, int(qty)))
+            total += p["price"] * int(qty)
+
     if not products:
         flash("Your cart is empty.", "warning")
         return redirect(url_for("index"))
+
     if request.method == "POST":
-        name, phone, address = (request.form.get(k,"").strip() for k in ("name","phone","address"))
+        choice = request.form.get("delivery_choice", "new")
+        name = phone = address = ""
+
+        if choice != "new":
+            saved = conn.execute(
+                "SELECT * FROM addresses WHERE id=? AND user_id=?",
+                (choice, uid)
+            ).fetchone()
+
+            if saved:
+                name = saved["full_name"]
+                phone = saved["phone"]
+                address = (
+                    f'{saved["house"]}, {saved["area"]}, {saved["landmark"]}\n'
+                    f'{saved["city"]}, {saved["state"]} - {saved["pincode"]}'
+                )
+            else:
+                flash("Please select a valid saved address.", "danger")
+
+        else:
+            name = request.form.get("full_name", "").strip()
+            phone = request.form.get("phone", "").strip()
+            pincode = request.form.get("pincode", "").strip()
+            house = request.form.get("house", "").strip()
+            area = request.form.get("area", "").strip()
+            landmark = request.form.get("landmark", "").strip()
+            city = request.form.get("city", "").strip()
+            state = request.form.get("state", "").strip()
+            address_type = request.form.get("address_type", "Home")
+
+            if (not all([name, phone, pincode, house, area, city, state])
+                    or not phone.isdigit() or len(phone) != 10
+                    or not pincode.isdigit() or len(pincode) != 6
+                    or address_type not in ("Home", "Work")):
+                flash("Please enter valid delivery details.", "danger")
+            else:
+                address = (
+                    f"{house}, {area}, {landmark}\n"
+                    f"{city}, {state} - {pincode}"
+                )
+
         if not name or not phone or not address:
-            flash("Please complete all delivery details.", "danger")
-        elif any(qty > p["stock"] for p,qty in products):
+            if not any("valid" in str(x) for x in []):
+                pass
+        elif any(qty > p["stock"] for p, qty in products):
             flash("A product quantity is no longer available. Please update your cart.", "danger")
         else:
-            conn = db()
-            cur = conn.execute("INSERT INTO orders(user_id,customer_name,phone,address,total) VALUES(?,?,?,?,?)",
-                               (session["user"]["id"],name,phone,address,total))
+            if choice == "new" and request.form.get("save_address") == "yes":
+                is_default = 1 if not conn.execute(
+                    "SELECT id FROM addresses WHERE user_id=?", (uid,)
+                ).fetchone() else 0
+                conn.execute(
+                    """INSERT INTO addresses
+                    (user_id,full_name,phone,pincode,house,area,landmark,city,state,address_type,is_default)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+                    (uid,name,phone,pincode,house,area,landmark,city,state,address_type,is_default)
+                )
+
+            cur = conn.execute(
+                "INSERT INTO orders(user_id,customer_name,phone,address,total) VALUES(?,?,?,?,?)",
+                (uid,name,phone,address,total)
+            )
             oid = cur.lastrowid
-            for p,qty in products:
-                conn.execute("INSERT INTO order_items(order_id,product_id,product_name,price,quantity) VALUES(?,?,?,?,?)",
-                             (oid,p["id"],p["name"],p["price"],qty))
-                conn.execute("UPDATE products SET stock=stock-? WHERE id=?", (qty,p["id"]))
+
+            for product, qty in products:
+                conn.execute(
+                    "INSERT INTO order_items(order_id,product_id,product_name,price,quantity) VALUES(?,?,?,?,?)",
+                    (oid,product["id"],product["name"],product["price"],qty)
+                )
+                conn.execute(
+                    "UPDATE products SET stock=stock-? WHERE id=?",
+                    (qty,product["id"])
+                )
+
             conn.commit()
             session["cart"] = {}
             flash(f"Order #{oid} placed successfully. Payment is currently cash on delivery / manual.", "success")
             return redirect(url_for("my_orders"))
-    return render_template("checkout.html", products=products, total=total)
+
+    saved_addresses = conn.execute(
+        "SELECT * FROM addresses WHERE user_id=? ORDER BY is_default DESC,id DESC",
+        (uid,)
+    ).fetchall()
+
+    return render_template(
+        "checkout.html",
+        products=products,
+        total=total,
+        addresses=saved_addresses
+    )
 
 @app.route("/orders")
 @login_required
@@ -232,7 +453,7 @@ def my_orders():
 @app.route("/admin")
 @admin_required
 def admin():
-    products = db().execute("SELECT * FROM products ORDER BY id DESC").fetchall()
+    products = db().execute("SELECT * FROM products WHERE owner_id=? ORDER BY id DESC", (session["user"]["id"],)).fetchall()
     orders = db().execute("SELECT orders.*, users.email FROM orders JOIN users ON users.id=orders.user_id ORDER BY orders.id DESC").fetchall()
     stats = {"products":len(products), "orders":len(orders),
              "sales":db().execute("SELECT COALESCE(SUM(total),0) FROM orders").fetchone()[0]}
@@ -250,19 +471,64 @@ def admin_add_product():
     if not name or price < 0 or stock < 0:
         flash("Please enter valid product details.", "danger")
     else:
-        db().execute("INSERT INTO products(name,description,price,category,image,stock,featured) VALUES(?,?,?,?,?,?,?)",
+        db().execute("INSERT INTO products(name,description,price,category,image,stock,featured,owner_id) VALUES(?,?,?,?,?,?,?,?)",
           (name,request.form.get("description",""),price,request.form.get("category","General"),
-           request.form.get("image",""),stock,1 if request.form.get("featured") else 0))
+           request.form.get("image",""),stock,1 if request.form.get("featured") else 0,session["user"]["id"]))
         db().commit()
         flash("Product added.", "success")
     return redirect(url_for("admin"))
 
+@app.route("/admin/product/<int:pid>/edit", methods=["GET", "POST"])
+@admin_required
+def admin_edit_product(pid):
+    product = db().execute(
+        "SELECT * FROM products WHERE id=? AND owner_id=?",
+        (pid, session["user"]["id"])
+    ).fetchone()
+
+    if product is None:
+        abort(404)
+
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        try:
+            price = float(request.form.get("price", 0))
+            stock = int(request.form.get("stock", 0))
+        except ValueError:
+            flash("Price and stock must be numbers.", "danger")
+            return render_template("edit_product.html", product=product)
+
+        if not name or price < 0 or stock < 0:
+            flash("Please enter valid product details.", "danger")
+            return render_template("edit_product.html", product=product)
+
+        db().execute(
+            """UPDATE products SET name=?, description=?, price=?, category=?,
+               image=?, stock=?, featured=?
+               WHERE id=? AND owner_id=?""",
+            (name, request.form.get("description", ""), price,
+             request.form.get("category", "General"), request.form.get("image", ""),
+             stock, 1 if request.form.get("featured") else 0,
+             pid, session["user"]["id"])
+        )
+        db().commit()
+        flash("Your product has been updated.", "success")
+        return redirect(url_for("admin"))
+
+    return render_template("edit_product.html", product=product)
+
+
 @app.route("/admin/product/<int:pid>/delete", methods=["POST"])
 @admin_required
 def admin_delete_product(pid):
-    db().execute("DELETE FROM products WHERE id=?", (pid,))
+    result = db().execute(
+        "DELETE FROM products WHERE id=? AND owner_id=?",
+        (pid, session["user"]["id"])
+    )
+    if result.rowcount == 0:
+        abort(404)
     db().commit()
-    flash("Product deleted.", "success")
+    flash("Your product has been deleted.", "success")
     return redirect(url_for("admin"))
 
 @app.route("/admin/order/<int:oid>", methods=["POST"])
