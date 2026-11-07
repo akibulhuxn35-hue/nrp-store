@@ -26,26 +26,61 @@ body {background:#f5f7fa;color:#172b42;font-family:'DM Sans',sans-serif;margin:0
 footer {margin-bottom:65px}
 @media(min-width:700px){.bottom-nav{display:none}}
 @media(max-width:699px){.topbar{flex-wrap:wrap}.navlinks{gap:12px}.navlinks a{font-size:13px}.container{padding:10px}}
-</style>
+
+@media(max-width:760px) {
+  .topbar {position:relative; z-index:1000;}
+  .menu-toggle {display:block; margin-left:auto;}
+  .topbar .navlinks {
+    display:none !important;
+    position:absolute;
+    top:100%;
+    left:0;
+    right:0;
+    background:#111114;
+    padding:16px;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:10px;
+    z-index:1001;
+    max-height:70vh;
+    overflow-y:auto;
+  }
+  .topbar .navlinks.open {display:flex !important;}
+  .topbar .navlinks a {
+    display:block;
+    width:100%;
+    max-width:230px;
+    padding:10px 18px;
+    border:1px solid #dce4ec;
+    border-radius:30px;
+    background:white;
+    color:#102a43;
+    text-align:left;
+    font-size:14px;
+  }
+}
+@media(min-width:761px) {
+  .menu-toggle {display:none;}
+}
+\n</style>
 </head>
 <body>
 
 <header class="topbar">
 <a class="brand" href="{{ url_for('index') }}"><span class="brand-mark">N</span> NRP STORE</a>
 
-{% if current_user and current_user.is_admin %}
-<button class="menu-toggle" onclick="document.querySelector('.admin-menu').classList.toggle('open')">☰</button>
-<div class="admin-menu">
-<a href="{{ url_for('admin') }}">Dashboard</a>
-<a href="{{ url_for('admin') }}">Add New Product</a>
-<a href="{{ url_for('admin') }}">Manage Products & Orders</a>
-<a href="{{ url_for('logout') }}">Logout</a>
-</div>
-{% endif %}
+<button class="menu-toggle" type="button"
+onclick="const m=document.querySelector('.navlinks');m.classList.toggle('open');this.setAttribute('aria-expanded',m.classList.contains('open'));">
+☰
+</button>
 
 <nav class="navlinks">
 <a href="{{ url_for('index') }}">Home</a>
 <a href="{{ url_for('index') }}#products">Products</a>
+{% if current_user and current_user.is_admin %}
+<a href="{{ url_for('admin') }}">Dashboard</a>
+<a href="{{ url_for('admin') }}">Add New Product</a>
+{% endif %}
 {% if current_user %}
 <a href="{{ url_for('my_orders') }}">Orders</a>
 <a href="{{ url_for('addresses') }}">My Addresses</a>
