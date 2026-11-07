@@ -280,6 +280,7 @@ def forbidden(e): return render_template("error.html", code=403, message="You do
 @app.errorhandler(404)
 def not_found(e): return render_template("error.html", code=404, message="The page you're looking for does not exist."),404
 
+init_db()
+
 if __name__ == "__main__":
-    init_db()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT",5000)), debug=False)
