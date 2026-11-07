@@ -1,25 +1,8 @@
-cd ~/online_sale/online_sale
-
-python - <<'PY'
-from pathlib import Path
-
-p = Path("templates/base.html")
-s = p.read_text()
-
-old = '<a class="brand" href="{{ url_for(\'index\') }}">'
-new = old + '<img src="https://i.postimg.cc/hGy1kFxB/file-00000000e86482119d014e126d80cd9c.png" alt="NRP Store Logo" style="width:42px;height:42px;object-fit:contain;border-radius:8px;margin-right:10px;">'
-
-if old in s:
-    p.write_text(s.replace(old, new, 1))
-    print("NRP Store logo added successfully!")
-else:
-    print("Brand code nahi mila. File change nahi hui.")
-PY
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0b0b0d"><title>{% block title %}NRP Store{% endblock %}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static',filename='css/style.css') }}"></head><body>
-<header class="topbar"><a class="brand" href="{{ url_for('index') }}"><img src="https://i.postimg.cc/hGy1kFxB/file-00000000e86482119d014e126d80cd9c.png" alt="NRP Store Logo" style="width:42px;height:42px;object-fit:contain;border-radius:8px;margin-right:10px;"><span class="brand-mark">O</span> NRP Store</a>
+<header class="topbar"><a class="brand" href="{{ url_for('index') }}"><span class="brand-mark">O</span> NRP Store</a>
 <button class="menu-toggle" onclick="document.querySelector('.navlinks').classList.toggle('open')">☰</button>
 <nav class="navlinks"><a href="{{ url_for('index') }}">Home</a><a href="{{ url_for('index') }}#products">Shop</a>
 {% if current_user %}<a href="{{ url_for('my_orders') }}">My orders</a>{% if current_user.is_admin %}<a href="{{ url_for('admin') }}">Admin</a>{% endif %}<a href="{{ url_for('logout') }}">Logout</a>
