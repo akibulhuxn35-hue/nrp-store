@@ -2,3 +2,16 @@ __pycache__/
 *.pyc
 .venv/
 online_sale.db
+
+# Local database backups
+*.db
+*.db-*
+*.before-neon
+
+# Protect local backups and migration files
+*.before-*
+*.backup
+*.address-backup
+online_sale.db*
+migrate_sqlite_to_neon.py
+backup_design/
