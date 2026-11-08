@@ -15,3 +15,11 @@ online_sale.db
 online_sale.db*
 migrate_sqlite_to_neon.py
 backup_design/
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Local backup copies
+*-backup

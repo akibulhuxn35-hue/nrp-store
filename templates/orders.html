@@ -1,1 +1,61 @@
-{% extends "base.html" %}{% block title %}My orders — NRP Store{% endblock %}{% block content %}<section class="section"><span class="eyebrow">YOUR PURCHASES</span><h1 class="page-title">My orders<span class="gold-dot">.</span></h1>{% for o in orders %}<div class="order-card"><div><b>Order #{{ o.id }}</b><small>{{ o.created_at }}</small></div><div><b>₹{{ '%.2f'|format(o.total) }}</b><small class="status">{{ o.status }}</small></div></div>{% else %}<div class="empty-state"><h2>No orders yet.</h2><a class="btn btn-gold" href="{{ url_for('index') }}">Start shopping</a></div>{% endfor %}</section>{% endblock %}
+{% extends "base.html" %}
+{% block title %}My Orders — NRP Store{% endblock %}
+
+{% block content %}
+<section class="section orders-page">
+    <span class="eyebrow">YOUR PURCHASES</span>
+    <h1 class="page-title">My orders<span class="gold-dot">.</span></h1>
+
+    {% for o in orders %}
+    <div class="order-card order-tracking-card">
+        <div class="order-card-heading">
+            <div>
+                <b>Order #{{ o.id }}</b>
+                <small>Ordered: {{ o.created_at }}</small>
+                <small>Expected delivery: {{ o.expected_delivery.strftime('%d %b %Y') }}</small>
+            </div>
+            <div>
+                <b>₹{{ '%.2f'|format(o.total) }}</b>
+                <small class="status">{{ o.status }}</small>
+            </div>
+        </div>
+
+        <div class="order-qr-area">
+            <img src="{{ url_for('order_qr', order_id=o.id) }}"
+                 alt="QR code for order {{ o.id }}"
+                 class="order-qr-image">
+            <div>
+                <b>Order QR Code</b>
+                <small>Admin can scan this code to view your order details.</small>
+            </div>
+        </div>
+
+        {% set stages = ['Confirmed', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'] %}
+        {% set current = o.status %}
+        {% set stage_index = stages.index(current) if current in stages else -1 %}
+
+        <div class="tracking-area">
+            <b>Order tracking</b>
+            <div class="tracking-timeline">
+                {% for stage in stages %}
+                <div class="tracking-step {% if stage_index >= loop.index0 %}completed{% endif %}">
+                    <span class="tracking-dot"></span>
+                    <small>{{ stage }}</small>
+                </div>
+                {% endfor %}
+            </div>
+            {% if current == 'Pending' or current == 'Processing' %}
+                <small>Your order is waiting for confirmation.</small>
+            {% elif current == 'Cancelled' %}
+                <small>This order has been cancelled.</small>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h2>No orders yet.</h2>
+        <a class="btn btn-gold" href="{{ url_for('index') }}">Start shopping</a>
+    </div>
+    {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}My Account — NRP STORE{% endblock %}
+{% block content %}
+
+<div class="account-page">
+
+  <section class="account-welcome">
+    <div>
+      <span class="account-kicker">MY NRP STORE</span>
+      <h1>Hey, {{ user.name }}!</h1>
+      <p>Welcome to your account dashboard.</p>
+    </div>
+    <a href="{{ url_for('my_orders') }}" class="account-help">Help & Support</a>
+  </section>
+
+  <section class="account-profile">
+    <div class="account-avatar">{{ user.name[:1]|upper }}</div>
+    <div class="account-profile-info">
+      <h2>{{ user.name }}</h2>
+      <p>{{ user.email }}</p>
+      <p>{{ user.phone or 'Phone number not added' }}</p>
+    </div>
+    <a href="#account-settings" class="account-edit">Edit</a>
+  </section>
+
+  <section class="account-stats">
+    <a href="{{ url_for('my_orders') }}" class="account-stat">
+      <span>📦</span>
+      <strong>{{ orders_count }}</strong>
+      <small>My Orders</small>
+    </a>
+    <a href="{{ url_for('addresses') }}" class="account-stat">
+      <span>📍</span>
+      <strong>{{ addresses_count }}</strong>
+      <small>Saved Addresses</small>
+    </a>
+    <a href="{{ url_for('wishlist') }}" class="account-stat">
+      <span>❤️</span>
+      <strong>{{ wishlist_count }}</strong>
+      <small>Saved items</small>
+    </a>
+  </section>
+
+  <section class="account-section">
+    <h2>My Shopping</h2>
+    <a href="{{ url_for('my_orders') }}" class="account-option">
+      <span class="account-icon">📦</span>
+      <span><strong>My Orders</strong><small>View and track your orders</small></span>
+      <b>›</b>
+    </a>
+    <a href="{{ url_for('cart') }}" class="account-option">
+      <span class="account-icon">🛒</span>
+      <span><strong>My Cart</strong><small>View products in your cart</small></span>
+      <b>›</b>
+    </a>
+    <a href="{{ url_for('wishlist') }}" class="account-option">
+      <span class="account-icon">❤️</span>
+      <span><strong>My Wishlist</strong><small>Your favourite products</small></span>
+      <b>›</b>
+    </a>
+    <a href="{{ url_for('addresses') }}" class="account-option">
+      <span class="account-icon">📍</span>
+      <span><strong>Delivery Addresses</strong><small>Manage saved addresses</small></span>
+      <b>›</b>
+    </a>
+  </section>
+
+  <section class="account-section">
+    <h2>Rewards & Offers</h2>
+    <div class="account-coming">
+      <span>🪙</span>
+      <div><strong>NRP SuperCoin</strong><small>Rewards will appear here when enabled.</small></div>
+      <b>Coming soon</b>
+    </div>
+    <div class="account-coming">
+      <span>🎁</span>
+      <div><strong>Coupons & Offers</strong><small>Available coupons will appear here.</small></div>
+      <b>Coming soon</b>
+    </div>
+    <div class="account-coming">
+      <span>💳</span>
+      <div><strong>Finance Offers</strong><small>Cash, card and EMI offers.</small></div>
+      <b>Coming soon</b>
+    </div>
+  </section>
+
+  <section class="account-section" id="account-settings">
+    <h2>Account Settings</h2>
+    <a href="#profile" class="account-option">
+      <span class="account-icon">👤</span>
+      <span><strong>Edit Profile</strong><small>Manage your personal information</small></span>
+      <b>›</b>
+    </a>
+    <a href="{{ url_for('addresses') }}" class="account-option">
+      <span class="account-icon">🏠</span>
+      <span><strong>Manage Addresses</strong><small>Add or update delivery addresses</small></span>
+      <b>›</b>
+    </a>
+    <a href="{{ url_for('forgot_password') }}" class="account-option">
+      <span class="account-icon">🔒</span>
+      <span><strong>Change Password</strong><small>Keep your account secure</small></span>
+      <b>›</b>
+    </a>
+    <a href="{{ url_for('logout') }}" class="account-option account-logout">
+      <span class="account-icon">↪️</span>
+      <span><strong>Logout</strong><small>Sign out of your account</small></span>
+      <b>›</b>
+    </a>
+  </section>
+
+</div>
+{% endblock %}

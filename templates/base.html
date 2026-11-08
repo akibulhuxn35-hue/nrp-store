@@ -109,7 +109,7 @@ onclick="const m=document.querySelector('.navlinks');m.classList.toggle('open');
 <a href="{{ url_for('index') }}">🏠<span>Home</span></a>
 <a href="{{ url_for('my_orders') if current_user else url_for('login') }}">🛍️<span>Orders</span></a>
 <a href="{{ url_for('index') }}#products">📦<span>Products</span></a>
-<a href="{{ url_for('login') if not current_user else url_for('my_orders') }}">👤<span>Profile</span></a>
+<a href="{{ url_for('account') if current_user else url_for('login') }}" class="{% if request.endpoint == 'account' %}active{% endif %}">👤<span>Account</span></a>
 <a href="{{ url_for('cart') }}">🛒<span>Cart</span></a>
 </nav>
 

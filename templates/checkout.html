@@ -1,2 +1,76 @@
-{% extends "base.html" %}{% block title %}Checkout — NRP Store{% endblock %}{% block content %}
-<section class="section narrow"><span class="eyebrow">ALMOST YOURS</span><h1 class="page-title">Checkout<span class="gold-dot">.</span></h1><div class="checkout-summary">{% for p,q in products %}<div><span>{{ p.name }} × {{ q }}</span><b>₹{{ '%.2f'|format(p.price*q) }}</b></div>{% endfor %}<div class="summary-total"><b>Total</b><strong>₹{{ '%.2f'|format(total) }}</strong></div></div><form method="post" class="stack-form checkout-form"><label>Delivery name<input name="name" required value="{{ current_user.name }}"></label><label>Phone number<input name="phone" type="tel" required></label><label>Full delivery address<textarea name="address" rows="3" required></textarea></label><p class="muted">Payment: Cash on delivery / manual confirmation. Online payment is not configured.</p><button class="btn btn-gold full">Place order ↗</button></form></section>{% endblock %}
+{% extends "base.html" %}
+{% block title %}Checkout — NRP STORE{% endblock %}
+{% block content %}
+<section class="section narrow">
+  <span class="eyebrow">ALMOST YOURS</span>
+  <h1 class="page-title">Checkout<span class="gold-dot">.</span></h1>
+
+  <div class="checkout-summary">
+    {% for p,q in products %}
+    <div>
+      <span>{{ p.name }} × {{ q }}</span>
+      <b>₹{{ '%.2f'|format(p.price*q) }}</b>
+    </div>
+    {% endfor %}
+    <div class="summary-total">
+      <b>Total</b>
+      <strong>₹{{ '%.2f'|format(total) }}</strong>
+    </div>
+  </div>
+
+  <form method="post" class="stack-form checkout-form">
+    {% if direct_order %}
+    <input type="hidden" name="direct" value="1">
+    {% endif %}
+
+    {% if addresses %}
+    <h3>Select a saved address</h3>
+    {% for a in addresses %}
+    <label class="checkout-address-option">
+      <input type="radio" name="delivery_choice" value="{{ a.id }}"
+             {% if loop.first %}checked{% endif %}>
+      <span>
+        <strong>{{ a.full_name }} — {{ a.address_type }}</strong><br>
+        {{ a.phone }}<br>
+        {{ a.house }}, {{ a.area }}, {{ a.landmark }}<br>
+        {{ a.city }}, {{ a.state }} - {{ a.pincode }}
+        {% if a.is_default %}<br><b>Default address</b>{% endif %}
+      </span>
+    </label>
+    {% endfor %}
+    {% endif %}
+
+    <label>
+      <input type="radio" name="delivery_choice" value="new"
+             {% if not addresses %}checked{% endif %}>
+      Use a new delivery address
+    </label>
+
+    <div class="new-address-fields">
+      <label>Full name<input name="full_name" required></label>
+      <label>Mobile number<input name="phone" type="tel" inputmode="numeric"
+             pattern="[0-9]{10}" maxlength="10"></label>
+      <label>PIN code<input name="pincode" inputmode="numeric"
+             pattern="[0-9]{6}" maxlength="6"></label>
+      <label>Flat, House no., Building<input name="house"></label>
+      <label>Area, Street, Village<input name="area"></label>
+      <label>Landmark (optional)<input name="landmark"></label>
+      <label>Town / City<input name="city"></label>
+      <label>State<input name="state"></label>
+      <label>Address type
+        <select name="address_type">
+          <option value="Home">Home</option>
+          <option value="Work">Work</option>
+        </select>
+      </label>
+      <label>
+        <input type="checkbox" name="save_address" value="yes">
+        Save this address for future orders
+      </label>
+    </div>
+
+    <p class="muted">Payment: Cash on delivery / manual confirmation. Online payment is not configured.</p>
+    <button class="btn btn-gold full" type="submit">Place order ↗</button>
+  </form>
+</section>
+{% endblock %}

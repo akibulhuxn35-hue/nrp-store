@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="wishlist-page">
+  <div class="wishlist-heading">
+    <h2>❤️ My Wishlist</h2>
+    <p>Your favourite products, saved in one place.</p>
+  </div>
+
+  {% if products %}
+  <div class="nrp-product-grid">
+    {% for p in products %}
+    <article class="nrp-product-card">
+      <a class="nrp-product-image" href="{{ url_for('product_detail', product_id=p.id) }}">
+        <img src="{{ p.image or 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=900' }}"
+             alt="{{ p.name }}" loading="lazy">
+      </a>
+      <form class="wishlist-form" method="post"
+            action="{{ url_for('wishlist_toggle', product_id=p.id) }}">
+        <button type="submit" class="wishlist-btn saved"
+                aria-label="Remove from wishlist">♥</button>
+      </form>
+      <div class="nrp-product-info">
+        <span class="nrp-product-category">{{ p.category }}</span>
+        <h3><a href="{{ url_for('product_detail', product_id=p.id) }}">{{ p.name }}</a></h3>
+        <div class="nrp-product-bottom">
+          <strong>₹{{ '%.0f'|format(p.price) }}</strong>
+          <form method="post" action="{{ url_for('add_to_cart', product_id=p.id) }}">
+            <button class="nrp-add-btn" type="submit" {% if p.stock <= 0 %}disabled{% endif %}>
+              {% if p.stock > 0 %}+ Add{% else %}Sold out{% endif %}
+            </button>
+          </form>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="wishlist-empty">
+    <div>♡</div>
+    <h3>Your wishlist is empty</h3>
+    <p>Save products you love and find them here.</p>
+    <a href="{{ url_for('index') }}">Explore Products</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

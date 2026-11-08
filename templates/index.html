@@ -2,50 +2,99 @@
 {% block title %}NRP STORE — Online Shopping{% endblock %}
 {% block content %}
 
-<section class="section" id="products">
-  <div class="section-head">
-    <div>
-      <span class="eyebrow">WELCOME TO NRP STORE</span>
-      <h1 class="page-title">Featured Products<span class="gold-dot">.</span></h1>
-      <p>Shop your favourite products at great prices.</p>
-    </div>
-    <form class="search" method="get">
-      <input name="q" value="{{ q }}" placeholder="Search products...">
-      <button type="submit">⌕</button>
+<div class="nrp-home">
+
+  <section class="nrp-search-section">
+    <form class="nrp-search" method="get" action="{{ url_for('index') }}">
+      <span>⌕</span>
+      <input type="search" name="q" value="{{ q }}" placeholder="Search for products, brands and more..." aria-label="Search products">
+      {% if category %}
+      <input type="hidden" name="category" value="{{ category }}">
+      {% endif %}
+      <button type="submit">Search</button>
     </form>
-  </div>
+  </section>
 
-  <div class="filters">
-    <a class="{% if not category %}active{% endif %}" href="{{ url_for('index') }}">All Products</a>
+  <section class="nrp-categories">
+    <a class="nrp-category {% if not category %}selected{% endif %}" href="{{ url_for('index') }}">
+      <span>🛍️</span><small>All</small>
+    </a>
     {% for c in categories %}
-    <a class="{% if category == c.category %}active{% endif %}" href="{{ url_for('index', category=c.category, q=q) }}">{{ c.category }}</a>
+    <a class="nrp-category {% if category == c.category %}selected{% endif %}"
+       href="{{ url_for('index', category=c.category, q=q) }}">
+      <span>📦</span><small>{{ c.category }}</small>
+    </a>
     {% endfor %}
-  </div>
+  </section>
 
-  <div class="product-grid">
-    {% for p in products %}
-    <article class="product-card">
-      <a class="product-image" href="{{ url_for('product_detail', product_id=p.id) }}">
-        <img src="{{ p.image or 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=900' }}" alt="{{ p.name }}" loading="lazy">
-        {% if p.featured %}<span class="tag">FEATURED</span>{% endif %}
-      </a>
-      <div class="product-info">
-        <span class="category">{{ p.category }}</span>
-        <h3><a href="{{ url_for('product_detail', product_id=p.id) }}">{{ p.name }}</a></h3>
-        <div class="product-bottom">
-          <b>₹{{ '%.0f'|format(p.price) }}</b>
-          <form method="post" action="{{ url_for('add_to_cart', product_id=p.id) }}">
-            <button class="add-btn" {% if p.stock <= 0 %}disabled{% endif %}>
-              {% if p.stock > 0 %}+ Add{% else %}Sold out{% endif %}
-            </button>
-          </form>
-        </div>
+  <section class="nrp-hero">
+    <div class="nrp-hero-content">
+      <span class="nrp-hero-label">WELCOME TO NRP STORE</span>
+      <h1>Everything you love,<br>in one place.</h1>
+      <p>Discover great products at prices you'll love.</p>
+      <a href="#products" class="nrp-shop-btn">Shop Now <span>→</span></a>
+    </div>
+    <div class="nrp-hero-art" aria-hidden="true">🛍️</div>
+  </section>
+
+  <section class="nrp-benefits">
+    <div><span>🛒</span><b>Easy Shopping</b></div>
+    <div><span>🔒</span><b>Secure Account</b></div>
+    <div><span>📦</span><b>Order Tracking</b></div>
+  </section>
+
+  <section class="nrp-products-section" id="products">
+    <div class="nrp-heading">
+      <div>
+        <span class="nrp-kicker">EXPLORE OUR COLLECTION</span>
+        <h2>{% if q %}Search Results{% elif category %}{{ category }}{% else %}Featured Products{% endif %}</h2>
       </div>
-    </article>
-    {% else %}
-    <p class="empty">No products found.</p>
-    {% endfor %}
-  </div>
-</section>
+      <span class="nrp-product-count">{{ products|length }} products</span>
+    </div>
 
+    <div class="nrp-product-grid">
+      {% for p in products %}
+      <article class="nrp-product-card">
+        <a class="nrp-product-image" href="{{ url_for('product_detail', product_id=p.id) }}">
+          <img src="{{ p.image or 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=900' }}"
+               alt="{{ p.name }}" loading="lazy">
+          {% if p.featured %}<span class="nrp-featured-tag">FEATURED</span>{% endif %}
+          {% if p.stock <= 0 %}<span class="nrp-stock-tag">SOLD OUT</span>{% endif %}
+        </a>
+        <form class="wishlist-form" method="post"
+              action="{{ url_for('wishlist_toggle', product_id=p.id) }}">
+          <button type="submit"
+                  class="wishlist-btn {% if p.id in wishlist_ids %}saved{% endif %}"
+                  aria-label="{% if p.id in wishlist_ids %}Remove from wishlist{% else %}Add to wishlist{% endif %}">
+            {% if p.id in wishlist_ids %}♥{% else %}♡{% endif %}
+          </button>
+        </form>
+        <div class="nrp-product-info">
+          <span class="nrp-product-category">{{ p.category }}</span>
+          <h3><a href="{{ url_for('product_detail', product_id=p.id) }}">{{ p.name }}</a></h3>
+          <div class="nrp-product-bottom">
+            <strong>₹{{ '%.0f'|format(p.price) }}</strong>
+            <form method="post" action="{{ url_for('add_to_cart', product_id=p.id) }}">
+              <button class="nrp-add-btn" type="submit" {% if p.stock <= 0 %}disabled{% endif %}>
+                {% if p.stock > 0 %}+ Add{% else %}Sold out{% endif %}
+              </button>
+            </form>
+          </div>
+          <small class="nrp-stock-note">
+            {% if p.stock > 0 %}In stock{% else %}Currently unavailable{% endif %}
+          </small>
+        </div>
+      </article>
+      {% else %}
+      <div class="nrp-empty">
+        <span>🔎</span>
+        <h3>No products found</h3>
+        <p>Try another search or explore all products.</p>
+        <a href="{{ url_for('index') }}">View all products</a>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+</div>
 {% endblock %}
