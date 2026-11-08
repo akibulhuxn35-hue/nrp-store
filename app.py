@@ -344,6 +344,7 @@ def forgot_password():
             try:
                 send_reset_email(email, otp)
             except Exception:
+                app.logger.exception("Password reset email send failed")
                 db().execute(
                     "UPDATE password_reset_otps SET used=1 "
                     "WHERE email=? AND created_at=?",
