@@ -301,7 +301,8 @@ def send_reset_email(email, otp):
         data=json.dumps(payload).encode("utf-8"),
         headers={
             "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "User-Agent": "NRP-STORE/1.0"
         },
         method="POST"
     )
