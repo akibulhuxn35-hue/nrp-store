@@ -1,4 +1,5 @@
 import os, sqlite3, secrets, hashlib, hmac, smtplib
+import json, urllib.request, urllib.error
 import psycopg
 from psycopg.rows import dict_row
 from functools import wraps
@@ -281,23 +282,39 @@ def otp_hash(email, otp):
 
 
 def send_reset_email(email, otp):
-    msg = EmailMessage()
-    msg["Subject"] = "NRP STORE - Password Reset OTP"
-    msg["From"] = os.environ["MAIL_USERNAME"]
-    msg["To"] = email
-    msg.set_content(
-        f"Your NRP STORE password reset OTP is: {otp}\n\n"
-        "This OTP expires in 5 minutes. Do not share it with anyone."
+    api_key = os.environ.get("RESEND_API_KEY")
+    if not api_key:
+        raise RuntimeError("RESEND_API_KEY is not configured")
+
+    payload = {
+        "from": "NRP STORE <onboarding@resend.dev>",
+        "to": [email],
+        "subject": "NRP STORE - Password Reset OTP",
+        "text": (
+            f"Your NRP STORE password reset OTP is: {otp}\n\n"
+            "This OTP expires in 5 minutes. Do not share it with anyone."
+        )
+    }
+
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        },
+        method="POST"
     )
 
-    with smtplib.SMTP(
-        os.environ.get("MAIL_SERVER", "smtp.gmail.com"),
-        int(os.environ.get("MAIL_PORT", "587")),
-        timeout=20
-    ) as server:
-        server.starttls()
-        server.login(os.environ["MAIL_USERNAME"], os.environ["MAIL_PASSWORD"])
-        server.send_message(msg)
+    try:
+        with urllib.request.urlopen(req, timeout=20) as response:
+            result = response.read().decode("utf-8")
+            app.logger.info("Resend email accepted: %s", result)
+    except urllib.error.HTTPError as exc:
+        error = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(
+            f"Resend API error {exc.code}: {error}"
+        ) from exc
 
 
 @app.route("/forgot-password", methods=["GET", "POST"])
