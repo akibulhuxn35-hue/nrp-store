@@ -1354,6 +1354,34 @@ def admin():
     for order in orders:
         order["status"] = update_automatic_order_status(conn, order)
 
+        item_rows = conn.execute(
+            """SELECT oi.*, p.image AS current_image, p.images AS current_images
+               FROM order_items oi
+               LEFT JOIN products p ON p.id=oi.product_id
+               WHERE oi.order_id=?
+               ORDER BY oi.id""",
+            (order["id"],)
+        ).fetchall()
+
+        order_items = []
+        for row in item_rows:
+            item = dict(row)
+            try:
+                photos = json.loads(item.get("current_images") or "[]")
+            except (TypeError, ValueError):
+                photos = []
+
+            if not isinstance(photos, list):
+                photos = []
+
+            item["photo"] = next(
+                (photo for photo in photos if isinstance(photo, str) and photo.strip()),
+                item.get("current_image") or ""
+            )
+            order_items.append(item)
+
+        order["items"] = order_items
+
     stats = {
         "products": len(products),
         "orders": len(orders),
