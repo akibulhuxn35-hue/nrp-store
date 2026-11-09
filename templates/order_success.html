@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Order Successful — NRP STORE{% endblock %}
+
+{% block content %}
+<style>
+.success-page {
+    text-align:center;
+    padding:35px 15px 55px;
+    overflow:hidden;
+    background:#fff;
+    border-radius:20px;
+}
+.success-hero {
+    position:relative;
+    padding:25px 0;
+}
+.success-check {
+    width:125px;
+    height:125px;
+    margin:auto;
+    border-radius:50%;
+    background:#16c65a;
+    color:white;
+    font-size:85px;
+    line-height:125px;
+    font-weight:bold;
+    animation:pop .65s ease-out, glow 2s infinite;
+}
+.success-bag {
+    font-size:85px;
+    margin-top:-5px;
+    animation:bounce 1.5s infinite;
+}
+.success-title {
+    color:#087b2b;
+    font-size:clamp(27px,6vw,42px);
+    font-weight:800;
+    margin:15px 0;
+}
+.success-subtitle {
+    color:#64748b;
+    font-size:18px;
+    line-height:1.6;
+}
+.success-details {
+    display:flex;
+    justify-content:space-around;
+    gap:12px;
+    flex-wrap:wrap;
+    background:#f1f5fb;
+    border-radius:18px;
+    padding:22px 10px;
+    margin:25px 0;
+}
+.success-details div { min-width:120px; }
+.success-details strong {
+    display:block;
+    font-size:24px;
+    color:#142d50;
+    margin-top:8px;
+}
+.success-note {
+    background:#dcfce7;
+    color:#087b2b;
+    border:1px solid #bbf7d0;
+    border-radius:12px;
+    padding:15px;
+    margin:20px 0;
+    font-weight:600;
+}
+.success-actions {
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    justify-content:center;
+    margin-top:25px;
+}
+.success-actions a {
+    flex:1;
+    min-width:180px;
+    padding:15px 12px;
+    border-radius:12px;
+    text-decoration:none;
+    font-weight:700;
+}
+.shop-btn {
+    border:2px solid #12345b;
+    color:#12345b;
+}
+.orders-btn {
+    background:#ffbd00;
+    color:#142d50;
+}
+.confetti {
+    position:absolute;
+    width:10px;
+    height:15px;
+    top:0;
+    animation:fall 3s linear infinite;
+}
+.confetti:nth-child(1){left:10%;background:#ffbd00}
+.confetti:nth-child(2){left:25%;background:#2196f3;animation-delay:.4s}
+.confetti:nth-child(3){left:45%;background:#e879f9;animation-delay:.8s}
+.confetti:nth-child(4){left:65%;background:#16c65a;animation-delay:.2s}
+.confetti:nth-child(5){left:85%;background:#fb7185;animation-delay:1s}
+@keyframes pop {
+    0%{transform:scale(0)}
+    75%{transform:scale(1.15)}
+    100%{transform:scale(1)}
+}
+@keyframes glow {
+    50%{box-shadow:0 0 30px #86efac}
+}
+@keyframes bounce {
+    50%{transform:translateY(-10px)}
+}
+@keyframes fall {
+    0%{transform:translateY(-20px) rotate(0);opacity:1}
+    100%{transform:translateY(260px) rotate(360deg);opacity:0}
+}
+</style>
+
+<section class="success-page">
+    <div class="success-hero">
+        <span class="confetti"></span>
+        <span class="confetti"></span>
+        <span class="confetti"></span>
+        <span class="confetti"></span>
+        <span class="confetti"></span>
+
+        <div class="success-check">✓</div>
+        <div class="success-bag">🛍️</div>
+    </div>
+
+    <h1 class="success-title">Order Placed Successfully!</h1>
+
+    <p class="success-subtitle">
+        Thank you for shopping with <b>NRP STORE</b>.<br>
+        Your order has been confirmed.
+    </p>
+
+    <div class="success-details">
+        <div>
+            📋 Order Number
+            <strong>#{{ order.id }}</strong>
+        </div>
+        <div>
+            💚 Total Amount
+            <strong>₹{{ '%.2f'|format(order.total) }}</strong>
+        </div>
+    </div>
+
+    <div class="success-note">
+        ✓ You will receive updates on your order soon.
+        <br><small>Payment: Cash on delivery / Manual confirmation</small>
+    </div>
+
+    <div class="success-actions">
+        <a href="{{ url_for('index') }}" class="shop-btn">
+            🛍️ Continue Shopping
+        </a>
+        <a href="{{ url_for('my_orders') }}" class="orders-btn">
+            ☰ View My Orders
+        </a>
+    </div>
+</section>
+{% endblock %}

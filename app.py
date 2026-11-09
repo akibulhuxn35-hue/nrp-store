@@ -907,11 +907,7 @@ def checkout():
             else:
                 session["cart"] = {}
 
-            flash(
-                f"Order #{oid} placed successfully. Payment is currently cash on delivery / manual.",
-                "success"
-            )
-            return redirect(url_for("my_orders"))
+            return redirect(url_for("order_success", order_id=oid))
 
     saved_addresses = conn.execute(
         "SELECT * FROM addresses WHERE user_id=? ORDER BY is_default DESC,id DESC",
@@ -925,6 +921,21 @@ def checkout():
         addresses=saved_addresses,
         direct_order=direct_order
     )
+
+@app.route("/order-success/<int:order_id>")
+@login_required
+def order_success(order_id):
+    conn = db()
+    order = conn.execute(
+        "SELECT id, total, status FROM orders WHERE id=? AND user_id=?",
+        (order_id, session["user"]["id"])
+    ).fetchone()
+
+    if not order:
+        abort(404)
+
+    return render_template("order_success.html", order=order)
+
 
 @app.route("/account")
 @login_required
