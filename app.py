@@ -179,6 +179,9 @@ def init_db():
                 "ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancel_note TEXT"
             )
             conn.execute(
+                "ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP"
+            )
+            conn.execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_qr_token ON orders(qr_token)"
             )
             old_orders = conn.execute(
@@ -277,6 +280,8 @@ def init_db():
         conn.execute("ALTER TABLE orders ADD COLUMN cancel_reason TEXT")
     if "cancel_note" not in order_columns:
         conn.execute("ALTER TABLE orders ADD COLUMN cancel_note TEXT")
+    if "delivered_at" not in order_columns:
+        conn.execute("ALTER TABLE orders ADD COLUMN delivered_at TEXT")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_qr_token ON orders(qr_token)")
     old_orders = conn.execute(
         "SELECT id FROM orders WHERE qr_token IS NULL OR qr_token=''"
@@ -1228,6 +1233,12 @@ def admin_scan():
     return render_template("admin_scan.html")
 
 
+@app.route("/admin/scan-delivery")
+@admin_required
+def admin_scan_delivery():
+    return render_template("admin_delivery_scan.html")
+
+
 @app.route("/admin/api/scan", methods=["POST"])
 @admin_required
 def admin_scan_order():
@@ -1274,6 +1285,54 @@ def admin_scan_order():
     return jsonify({
         "order": order,
         "items": [dict(item) for item in items]
+    })
+
+
+@app.route("/admin/api/confirm-delivery", methods=["POST"])
+@admin_required
+def admin_confirm_delivery():
+    data = request.get_json(silent=True) or {}
+    token = str(data.get("token", "")).strip()
+
+    if not token or len(token) > 200:
+        return jsonify({"error": "Valid customer Order QR is required."}), 400
+
+    conn = db()
+    order = conn.execute(
+        "SELECT id, status FROM orders WHERE qr_token=?",
+        (token,)
+    ).fetchone()
+
+    if not order:
+        return jsonify({"error": "Order QR not found."}), 404
+
+    if order["status"] == "Delivered":
+        return jsonify({"error": "This order is already Delivered."}), 409
+
+    if order["status"] == "Cancelled":
+        return jsonify({"error": "Cancelled order cannot be delivered."}), 409
+
+    if order["status"] != "Out for Delivery":
+        return jsonify({
+            "error": "Order must be Out for Delivery before confirmation."
+        }), 409
+
+    result = conn.execute(
+        """UPDATE orders
+           SET status='Delivered', delivered_at=CURRENT_TIMESTAMP
+           WHERE id=? AND status='Out for Delivery'""",
+        (order["id"],)
+    )
+    conn.commit()
+
+    if result.rowcount != 1:
+        return jsonify({"error": "Delivery status changed. Please scan again."}), 409
+
+    return jsonify({
+        "success": True,
+        "message": "Delivery confirmed successfully.",
+        "order_id": order["id"],
+        "status": "Delivered"
     })
 
 @app.route("/admin")
