@@ -69,6 +69,32 @@
       </label>
     </div>
 
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const fields = document.querySelector(".new-address-fields");
+        const choices = document.querySelectorAll('input[name="delivery_choice"]');
+
+        function updateAddressFields() {
+            const selected = document.querySelector('input[name="delivery_choice"]:checked');
+            const useNew = !selected || selected.value === "new";
+
+            fields.style.display = useNew ? "grid" : "none";
+
+            fields.querySelectorAll("input, select").forEach(function (input) {
+                input.disabled = !useNew;
+            });
+
+            fields.querySelector('input[name="full_name"]').required = useNew;
+        }
+
+        choices.forEach(function (choice) {
+            choice.addEventListener("change", updateAddressFields);
+        });
+
+        updateAddressFields();
+    });
+    </script>
+
     <p class="muted">Payment: Cash on delivery / manual confirmation. Online payment is not configured.</p>
     <button class="btn btn-gold full" type="submit">Place order ↗</button>
   </form>
