@@ -1,15 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Scan Order QR — NRP Store{% endblock %}
-
+{% block title %}Scan QR — NRP Store{% endblock %}
 {% block content %}
 <section class="section admin-scan-page">
     <span class="eyebrow">NRP STORE ADMIN</span>
-    <h1 class="page-title">Scan Order QR<span class="gold-dot">.</span></h1>
+    <h1 class="page-title">Scan QR<span class="gold-dot">.</span></h1>
 
     <div class="scan-panel">
-        <p>Customer ke order QR code ko camera ke saamne rakhein.</p>
+        <p>Customer ke Order QR code ko camera ke saamne rakhein.</p>
         <div id="reader"></div>
-        <button type="button" class="btn btn-gold" id="start-scan">Start Camera</button>
+        <button type="button" class="btn btn-gold" id="start-scan">📷 Start Camera</button>
         <button type="button" class="btn btn-outline" id="stop-scan">Stop Camera</button>
         <p id="scan-message" role="status"></p>
     </div>
@@ -22,7 +21,7 @@
 
     <div class="scan-panel">
         <label for="manual-order-id">Search by Order ID</label>
-        <input id="manual-order-id" type="number" min="1" placeholder="Enter Order ID, e.g. 5">
+        <input id="manual-order-id" type="number" min="1" placeholder="Enter Order ID">
         <button type="button" class="btn btn-gold" id="lookup-order-id">Search Order ID</button>
     </div>
 
@@ -33,16 +32,19 @@
         <div id="order-items"></div>
 
         <form id="status-form">
-            <label for="new-status">Update delivery status</label>
+            <label for="new-status">Update order status</label>
             <select id="new-status" name="status">
                 <option>Confirmed</option>
                 <option>Packed</option>
                 <option>Shipped</option>
                 <option>Out for Delivery</option>
-                <option>Delivered</option>
             </select>
             <button class="btn btn-gold" type="submit">Update Status</button>
         </form>
+
+        <button type="button" class="btn btn-gold full" id="confirm-delivery" hidden>
+            🚚 Confirm Delivery
+        </button>
     </div>
 </section>
 
@@ -50,31 +52,45 @@
 <script>
 let scanner = null;
 let currentOrderId = null;
+let currentToken = "";
 let busy = false;
 
 const message = document.getElementById("scan-message");
 const result = document.getElementById("order-result");
+const confirmButton = document.getElementById("confirm-delivery");
+
+function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;",
+        '"': "&quot;", "'": "&#39;"
+    })[char]);
+}
 
 async function findOrder(token, orderId = null) {
     if ((!token && !orderId) || busy) return;
+
     busy = true;
+    currentToken = "";
+    confirmButton.hidden = true;
+    result.hidden = true;
     message.textContent = "Searching order...";
 
     try {
         const response = await fetch("{{ url_for('admin_scan_order') }}", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify(orderId ? {order_id: orderId} : {token: token})
+            body: JSON.stringify(orderId ? {order_id: orderId} : {token})
         });
 
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Order not found.");
 
-        currentOrderId = data.order.id;
         const o = data.order;
+        currentOrderId = o.id;
+        currentToken = token || "";
 
         document.getElementById("order-info").innerHTML = `
-            <p><b>Order:</b> #${o.id}</p>
+            <p><b>Order:</b> #${escapeHTML(o.id)}</p>
             <p><b>Customer:</b> ${escapeHTML(o.customer_name)}</p>
             <p><b>Phone:</b> ${escapeHTML(o.phone)}</p>
             <p><b>Email:</b> ${escapeHTML(o.email || "")}</p>
@@ -91,23 +107,25 @@ async function findOrder(token, orderId = null) {
             `).join("");
 
         document.getElementById("new-status").value =
-            ["Confirmed", "Packed", "Shipped", "Out for Delivery", "Delivered"].includes(o.status)
+            ["Confirmed", "Packed", "Shipped", "Out for Delivery"].includes(o.status)
             ? o.status : "Confirmed";
 
+        document.getElementById("status-form").hidden =
+            ["Delivered", "Cancelled"].includes(o.status);
+
+        confirmButton.hidden = !(o.status === "Out for Delivery" && currentToken);
         result.hidden = false;
-        message.textContent = "Order found successfully.";
+
+        message.textContent = o.status === "Out for Delivery" && !currentToken
+            ? "Delivery confirm karne ke liye customer ka QR scan karein."
+            : "Order found successfully.";
     } catch (error) {
+        currentOrderId = null;
+        currentToken = "";
         message.textContent = error.message;
     } finally {
         busy = false;
     }
-}
-
-function escapeHTML(value) {
-    return String(value ?? "").replace(/[&<>"']/g, char => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;",
-        '"': "&quot;", "'": "&#39;"
-    })[char]);
 }
 
 document.getElementById("start-scan").addEventListener("click", async () => {
@@ -115,7 +133,6 @@ document.getElementById("start-scan").addEventListener("click", async () => {
         message.textContent = "Scanner library load nahi hui. Internet check karein.";
         return;
     }
-
     try {
         if (!scanner) scanner = new Html5Qrcode("reader");
         await scanner.start(
@@ -151,22 +168,56 @@ document.getElementById("lookup-order-id").addEventListener("click", () => {
 
 document.getElementById("status-form").addEventListener("submit", async event => {
     event.preventDefault();
-    if (!currentOrderId) return;
+    if (!currentOrderId || busy) return;
 
+    busy = true;
     const body = new URLSearchParams({
         status: document.getElementById("new-status").value
     });
 
-    const response = await fetch(`/admin/order/${currentOrderId}`, {
-        method: "POST",
-        headers: {"Content-Type": "application/x-www-form-urlencoded"},
-        body: body.toString()
-    });
+    try {
+        const response = await fetch(`/admin/order/${currentOrderId}`, {
+            method: "POST",
+            headers: {"Content-Type": "application/x-www-form-urlencoded"},
+            body: body.toString()
+        });
+        if (!response.ok) throw new Error("Status update failed.");
+        message.textContent = "Status update request complete. Order dobara search karke verify karein.";
+    } catch (error) {
+        message.textContent = error.message;
+    } finally {
+        busy = false;
+    }
+});
 
-    if (response.redirected || response.ok) {
-        message.textContent = "Status update request complete. Reload order to verify.";
-    } else {
-        message.textContent = "Status update failed.";
+confirmButton.addEventListener("click", async () => {
+    if (!currentToken || busy) return;
+    if (!confirm("Kya aap is customer ki delivery confirm karna chahte hain?")) return;
+
+    busy = true;
+    message.textContent = "Confirming delivery...";
+    try {
+        const response = await fetch("{{ url_for('admin_confirm_delivery') }}", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({token: currentToken})
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Delivery confirmation failed.");
+
+        message.textContent = "✅ Order #" + data.order_id + " delivery confirmed successfully!";
+        currentToken = "";
+        confirmButton.hidden = true;
+        document.querySelector("#order-info").innerHTML =
+            document.querySelector("#order-info").innerHTML.replace(
+                /<p><b>Status:<\/b>.*?<\/p>/,
+                "<p><b>Status:</b> Delivered</p>"
+            );
+        document.getElementById("status-form").hidden = true;
+    } catch (error) {
+        message.textContent = error.message;
+    } finally {
+        busy = false;
     }
 });
 </script>
