@@ -1,5 +1,16 @@
 {% extends "base.html" %}{% block title %}Admin dashboard — NRP Store{% endblock %}{% block content %}
 <section class="section"><span class="eyebrow">STORE CONTROL</span><h1 class="page-title">Dashboard<span class="gold-dot">.</span></h1><div class="stats"><div><small>Products</small><b>{{ stats.products }}</b></div><div><small>Orders</small><b>{{ stats.orders }}</b></div><div><small>Order value</small><b>₹{{ '%.2f'|format(stats.sales) }}</b></div></div>
+<div class="panel" style="margin:20px 0">
+    <h2>🚚 Create Delivery Boy Account</h2>
+    <form method="post" action="{{ url_for('admin_create_delivery') }}" class="stack-form">
+        <label>Delivery Boy Name<input name="name" required></label>
+        <label>Email Address<input type="email" name="email" required></label>
+        <label>Temporary Password<input type="password" name="password" minlength="8" required></label>
+        <button class="btn btn-gold full">Create Delivery Account</button>
+    </form>
+    <p class="muted">Delivery boy isi email aur temporary password se login karega.</p>
+</div>
+
 <div class="admin-grid"><div class="panel"><h2>Add a product</h2><form method="post" action="{{ url_for('admin_add_product') }}" class="stack-form" enctype="multipart/form-data"><label>Product name<input name="name" required></label><label>Description<textarea name="description" rows="3"></textarea></label><div class="two-fields"><label>Price (₹)<input type="number" name="price" min="0" step=".01" required></label><label>Stock<input type="number" name="stock" min="0" value="10" required></label></div><label>Category<input name="category" value="General"></label><label>Product Photos (Select up to 7)<input type="file" name="images" accept="image/*" multiple></label><label class="check-label"><input type="checkbox" name="featured"> Feature this product</label><button class="btn btn-gold full">Add product</button></form></div>
 <div class="panel"><h2>📦 Products</h2>{% for p in products %}<div class="admin-row"><div><b>{{ p.name }}</b><small>₹{{ '%.2f'|format(p.price) }} · Stock {{ p.stock }}</small></div><a class="mini-btn" href="{{ url_for('admin_edit_product',pid=p.id) }}">Edit</a><form method="post" action="{{ url_for('admin_delete_product',pid=p.id) }}" onsubmit="return confirm('Delete this product?')"><button class="delete-btn">Delete</button></form></div>{% endfor %}</div></div>
 
@@ -42,6 +53,30 @@
             <a class="mini-btn" target="_blank"
                href="{{ url_for('admin_print_order', oid=o.id) }}">🖨️ Print Parcel Slip</a>
         </div>
+        <div class="panel" style="margin:12px 0;padding:14px">
+            <b>🚚 Delivery Boy Assignment</b>
+            {% if o.delivery_boy %}
+            <p>Assigned: {{ o.delivery_boy.name }} ({{ o.delivery_boy.email }})</p>
+            {% else %}
+            <p class="muted">No delivery boy assigned.</p>
+            {% endif %}
+            {% if delivery_staff %}
+            <form method="post" action="{{ url_for('admin_assign_delivery', oid=o.id) }}" class="stack-form">
+                <select name="delivery_user_id" required>
+                    <option value="">Select Delivery Boy</option>
+                    {% for staff in delivery_staff %}
+                    <option value="{{ staff.id }}" {% if o.delivery_boy and o.delivery_boy.id == staff.id %}selected{% endif %}>
+                        {{ staff.name }} — {{ staff.email }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <button class="mini-btn">Assign Delivery Boy</button>
+            </form>
+            {% else %}
+            <small>Create a delivery boy account first.</small>
+            {% endif %}
+        </div>
+
         <details class="order-details">
             <summary>View Full Order Details</summary>
             <div class="order-customer-details">

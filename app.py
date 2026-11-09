@@ -164,6 +164,17 @@ def init_db():
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_verified INTEGER NOT NULL DEFAULT 0"
             )
             conn.execute(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_delivery INTEGER NOT NULL DEFAULT 0"
+            )
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS delivery_assignments (
+                    order_id BIGINT PRIMARY KEY REFERENCES orders(id) ON DELETE CASCADE,
+                    delivery_user_id BIGINT NOT NULL REFERENCES users(id),
+                    assigned_by BIGINT NOT NULL REFERENCES users(id),
+                    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.execute(
                 "ALTER TABLE products ADD COLUMN IF NOT EXISTS owner_id BIGINT"
             )
             conn.execute(
@@ -272,6 +283,18 @@ def init_db():
         conn.execute("ALTER TABLE products ADD COLUMN owner_id INTEGER")
     if "images" not in columns:
         conn.execute("ALTER TABLE products ADD COLUMN images TEXT NOT NULL DEFAULT '[]'")
+    user_columns = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
+    if "is_delivery" not in user_columns:
+        conn.execute("ALTER TABLE users ADD COLUMN is_delivery INTEGER NOT NULL DEFAULT 0")
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS delivery_assignments (
+            order_id INTEGER PRIMARY KEY REFERENCES orders(id) ON DELETE CASCADE,
+            delivery_user_id INTEGER NOT NULL REFERENCES users(id),
+            assigned_by INTEGER NOT NULL REFERENCES users(id),
+            assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
 
     order_columns = {row[1] for row in conn.execute("PRAGMA table_info(orders)")}
     if "qr_token" not in order_columns:
@@ -337,6 +360,17 @@ def admin_required(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         if not session.get("user") or not session["user"].get("is_admin"):
+            abort(403)
+        return fn(*args, **kwargs)
+    return wrapper
+
+
+def delivery_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not session.get("user"):
+            return redirect(url_for("login"))
+        if not session["user"].get("is_delivery"):
             abort(403)
         return fn(*args, **kwargs)
     return wrapper
@@ -623,9 +657,19 @@ def login():
         user = db().execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
         if user and check_password_hash(user["password"], request.form.get("password","")):
             session.clear()
-            session["user"] = {"id":user["id"],"name":user["name"],"email":user["email"],"is_admin":bool(user["is_admin"])}
+            session["user"] = {
+                "id": user["id"],
+                "name": user["name"],
+                "email": user["email"],
+                "is_admin": bool(user["is_admin"]),
+                "is_delivery": bool(user["is_delivery"])
+            }
             flash("Welcome back!", "success")
-            return redirect(url_for("admin") if user["is_admin"] else url_for("index"))
+            if user["is_admin"]:
+                return redirect(url_for("admin"))
+            if user["is_delivery"]:
+                return redirect(url_for("delivery_dashboard"))
+            return redirect(url_for("index"))
         flash("Incorrect email or password.", "danger")
     return render_template("auth.html", mode="login")
 
@@ -991,6 +1035,41 @@ def order_success(order_id):
     return render_template("order_success.html", order=order)
 
 
+
+@app.route("/change-password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    if request.method == "POST":
+        current = request.form.get("current_password", "")
+        new = request.form.get("new_password", "")
+        confirm = request.form.get("confirm_password", "")
+
+        conn = db()
+        user = conn.execute(
+            "SELECT password FROM users WHERE id=?",
+            (session["user"]["id"],)
+        ).fetchone()
+
+        if not user or not check_password_hash(user["password"], current):
+            flash("Current password is incorrect.", "danger")
+        elif len(new) < 8:
+            flash("New password must be at least 8 characters.", "danger")
+        elif new != confirm:
+            flash("New passwords do not match.", "danger")
+        elif check_password_hash(user["password"], new):
+            flash("Choose a different password.", "warning")
+        else:
+            conn.execute(
+                "UPDATE users SET password=? WHERE id=?",
+                (generate_password_hash(new), session["user"]["id"])
+            )
+            conn.commit()
+            flash("Password changed successfully.", "success")
+            return redirect(url_for("change_password"))
+
+    return render_template("change_password.html")
+
+
 @app.route("/account")
 @login_required
 def account():
@@ -1288,6 +1367,83 @@ def admin_scan_order():
     })
 
 
+@app.route("/delivery/api/scan", methods=["POST"])
+@delivery_required
+def delivery_scan_order():
+    data = request.get_json(silent=True) or {}
+    token = str(data.get("token", "")).strip()
+
+    if not token or len(token) > 200:
+        return jsonify({"error": "Valid customer Order QR is required."}), 400
+
+    conn = db()
+    found = conn.execute(
+        """SELECT orders.id, orders.customer_name, orders.phone,
+                  orders.address, orders.total, orders.status,
+                  orders.created_at, users.email
+           FROM delivery_assignments
+           JOIN orders ON orders.id=delivery_assignments.order_id
+           JOIN users ON users.id=orders.user_id
+           WHERE orders.qr_token=? AND delivery_assignments.delivery_user_id=?""",
+        (token, session["user"]["id"])
+    ).fetchone()
+
+    if not found:
+        return jsonify({"error": "This parcel is not assigned to your account."}), 403
+
+    order = dict(found)
+    order["status"] = update_automatic_order_status(conn, order)
+    items = conn.execute(
+        "SELECT product_name,price,quantity FROM order_items WHERE order_id=?",
+        (order["id"],)
+    ).fetchall()
+
+    return jsonify({"order": order, "items": [dict(item) for item in items]})
+
+
+@app.route("/delivery/api/confirm", methods=["POST"])
+@delivery_required
+def delivery_confirm_order():
+    data = request.get_json(silent=True) or {}
+    token = str(data.get("token", "")).strip()
+
+    if not token or len(token) > 200:
+        return jsonify({"error": "Valid customer Order QR is required."}), 400
+
+    conn = db()
+    order = conn.execute(
+        """SELECT orders.id, orders.status
+           FROM delivery_assignments
+           JOIN orders ON orders.id=delivery_assignments.order_id
+           WHERE orders.qr_token=? AND delivery_assignments.delivery_user_id=?""",
+        (token, session["user"]["id"])
+    ).fetchone()
+
+    if not order:
+        return jsonify({"error": "This parcel is not assigned to your account."}), 403
+
+    if order["status"] == "Delivered":
+        return jsonify({"error": "This order is already delivered."}), 400
+
+    if order["status"] == "Cancelled":
+        return jsonify({"error": "Cancelled order cannot be delivered."}), 400
+
+    if order["status"] != "Out for Delivery":
+        return jsonify({"error": "Order must be Out for Delivery first."}), 400
+
+    result = conn.execute(
+        """UPDATE orders SET status='Delivered', delivered_at=CURRENT_TIMESTAMP
+           WHERE id=? AND status='Out for Delivery'""",
+        (order["id"],)
+    )
+    if result.rowcount != 1:
+        conn.rollback()
+        return jsonify({"error": "Order status changed. Please scan again."}), 409
+
+    conn.commit()
+    return jsonify({"success": True, "order_id": order["id"]})
+
+
 @app.route("/admin/api/confirm-delivery", methods=["POST"])
 @admin_required
 def admin_confirm_delivery():
@@ -1406,10 +1562,44 @@ def admin_order_qr(oid):
     return Response(output.getvalue(), mimetype="image/svg+xml")
 
 
+@app.route("/admin/delivery/create", methods=["POST"])
+@admin_required
+def admin_create_delivery():
+    name = request.form.get("name", "").strip()
+    email = request.form.get("email", "").strip().lower()
+    password = request.form.get("password", "")
+
+    if not name or not email or len(password) < 8:
+        flash("Enter name, email and a password of at least 8 characters.", "danger")
+        return redirect(url_for("admin"))
+
+    conn = db()
+    existing = conn.execute(
+        "SELECT id FROM users WHERE email=?", (email,)
+    ).fetchone()
+
+    if existing:
+        flash("This email is already registered.", "danger")
+        return redirect(url_for("admin"))
+
+    conn.execute(
+        """INSERT INTO users(name,email,password,is_admin,is_delivery)
+           VALUES(?,?,?,0,1)""",
+        (name, email, generate_password_hash(password))
+    )
+    conn.commit()
+    flash("Delivery boy account created successfully.", "success")
+    return redirect(url_for("admin"))
+
+
 @app.route("/admin")
 @admin_required
 def admin():
     conn = db()
+    delivery_staff = conn.execute(
+        "SELECT id,name,email FROM users WHERE is_delivery=1 ORDER BY name"
+    ).fetchall()
+
     products = conn.execute(
         "SELECT * FROM products WHERE owner_id=? ORDER BY id DESC",
         (session["user"]["id"],)
@@ -1424,6 +1614,15 @@ def admin():
     orders = [dict(order) for order in rows]
     for order in orders:
         order["status"] = update_automatic_order_status(conn, order)
+
+        assignment = conn.execute(
+            """SELECT users.id, users.name, users.email
+               FROM delivery_assignments
+               JOIN users ON users.id=delivery_assignments.delivery_user_id
+               WHERE delivery_assignments.order_id=?""",
+            (order["id"],)
+        ).fetchone()
+        order["delivery_boy"] = dict(assignment) if assignment else None
 
         item_rows = conn.execute(
             """SELECT oi.*, p.image AS current_image, p.images AS current_images
@@ -1460,7 +1659,82 @@ def admin():
             "SELECT COALESCE(SUM(total),0) AS sales FROM orders"
         ).fetchone()["sales"]
     }
-    return render_template("admin.html", products=products, orders=orders, stats=stats)
+    return render_template("admin.html", products=products, orders=orders, stats=stats, delivery_staff=delivery_staff)
+
+@app.route("/delivery")
+@delivery_required
+def delivery_dashboard():
+    conn = db()
+    rows = conn.execute(
+        """SELECT orders.*, users.name AS customer_name, users.email
+           FROM delivery_assignments
+           JOIN orders ON orders.id=delivery_assignments.order_id
+           JOIN users ON users.id=orders.user_id
+           WHERE delivery_assignments.delivery_user_id=?
+           ORDER BY orders.id DESC""",
+        (session["user"]["id"],)
+    ).fetchall()
+
+    orders = []
+    for row in rows:
+        order = dict(row)
+        order["status"] = update_automatic_order_status(conn, order)
+        order["items"] = conn.execute(
+            "SELECT * FROM order_items WHERE order_id=? ORDER BY id",
+            (order["id"],)
+        ).fetchall()
+        orders.append(order)
+
+    return render_template("delivery_dashboard.html", orders=orders)
+
+
+@app.route("/delivery/scan")
+@delivery_required
+def delivery_scan():
+    return render_template("delivery_scan.html")
+
+
+@app.route("/admin/order/<int:oid>/assign-delivery", methods=["POST"])
+@admin_required
+def admin_assign_delivery(oid):
+    delivery_user_id = request.form.get("delivery_user_id", "").strip()
+
+    try:
+        delivery_user_id = int(delivery_user_id)
+    except (TypeError, ValueError):
+        flash("Please select a delivery boy.", "danger")
+        return redirect(url_for("admin"))
+
+    conn = db()
+    delivery_user = conn.execute(
+        "SELECT id FROM users WHERE id=? AND is_delivery=1",
+        (delivery_user_id,)
+    ).fetchone()
+    order = conn.execute(
+        "SELECT id,status FROM orders WHERE id=?", (oid,)
+    ).fetchone()
+
+    if not delivery_user or not order:
+        abort(404)
+
+    if order["status"] in ("Delivered", "Cancelled"):
+        flash("This order cannot be assigned.", "danger")
+        return redirect(url_for("admin"))
+
+    conn.execute(
+        """INSERT INTO delivery_assignments
+           (order_id,delivery_user_id,assigned_by)
+           VALUES(?,?,?)
+           ON CONFLICT(order_id) DO UPDATE SET
+           delivery_user_id=excluded.delivery_user_id,
+           assigned_by=excluded.assigned_by,
+           assigned_at=CURRENT_TIMESTAMP""",
+        (oid, delivery_user_id, session["user"]["id"])
+    )
+    conn.commit()
+    flash("Delivery boy assigned successfully.", "success")
+    return redirect(url_for("admin"))
+
 
 @app.route("/admin/product", methods=["POST"])
 @admin_required

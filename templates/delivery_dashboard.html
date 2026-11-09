@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Delivery Dashboard — NRP Store{% endblock %}
+{% block content %}
+<section class="section">
+    <span class="eyebrow">NRP STORE DELIVERY</span>
+    <h1 class="page-title">My Parcels<span class="gold-dot">.</span></h1>
+    <p>Welcome, {{ session.user.name }}</p>
+
+    <a class="btn btn-gold full" href="{{ url_for('delivery_scan') }}">📷 Scan Parcel QR</a>
+
+    <h2 style="margin-top:25px">Assigned Orders</h2>
+
+    {% for o in orders %}
+    <div class="panel" style="margin:15px 0;padding:18px">
+        <h3>Order #{{ o.id }}</h3>
+        <p><b>Customer:</b> {{ o.customer_name }}</p>
+        <p><b>Phone:</b> {{ o.phone }}</p>
+        <p><b>Address:</b> {{ o.address }}</p>
+        <p><b>Total:</b> ₹{{ '%.2f'|format(o.total) }}</p>
+        <p><b>Status:</b> {{ o.status }}</p>
+        <b>Products:</b>
+        {% for item in o.items %}
+        <p>{{ item.product_name }} × {{ item.quantity }}</p>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="panel"><p>No parcels assigned yet.</p></div>
+    {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Scan Parcel — NRP Store{% endblock %}
+{% block content %}
+<section class="section admin-scan-page">
+    <span class="eyebrow">NRP STORE DELIVERY</span>
+    <h1 class="page-title">Scan Parcel QR<span class="gold-dot">.</span></h1>
+
+    <div class="scan-panel">
+        <p>Customer ke existing Order QR ko camera ke saamne rakhein.</p>
+        <div id="reader"></div>
+        <button type="button" class="btn btn-gold" id="start-scan">📷 Start Camera</button>
+        <button type="button" class="btn btn-outline" id="stop-scan">Stop Camera</button>
+        <p id="scan-message" role="status"></p>
+    </div>
+
+    <div class="scan-panel">
+        <label for="manual-token">Manual QR Token</label>
+        <input id="manual-token" type="text" placeholder="Paste customer QR token">
+        <button type="button" class="btn btn-gold" id="lookup-token">Find Parcel</button>
+    </div>
+
+    <div id="order-result" class="scan-result" hidden>
+        <h2>Parcel Details</h2>
+        <div id="order-info"></div>
+        <h3>Products</h3>
+        <div id="order-items"></div>
+        <button type="button" class="btn btn-gold full" id="confirm-delivery" hidden>
+            🚚 Confirm Delivered
+        </button>
+    </div>
+
+    <a class="btn btn-outline" href="{{ url_for('delivery_dashboard') }}">Back to Dashboard</a>
+</section>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+let scanner = null;
+let currentToken = "";
+let busy = false;
+
+const message = document.getElementById("scan-message");
+const result = document.getElementById("order-result");
+const confirmButton = document.getElementById("confirm-delivery");
+
+function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;",
+        '"': "&quot;", "'": "&#39;"
+    })[char]);
+}
+
+async function findParcel(token) {
+    if (!token || busy) return;
+
+    busy = true;
+    currentToken = "";
+    confirmButton.hidden = true;
+    result.hidden = true;
+    message.textContent = "Checking assigned parcel...";
+
+    try {
+        const response = await fetch("{{ url_for('delivery_scan_order') }}", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({token})
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Parcel not found.");
+
+        const o = data.order;
+        currentToken = token;
+
+        document.getElementById("order-info").innerHTML = `
+            <p><b>Order:</b> #${escapeHTML(o.id)}</p>
+            <p><b>Customer:</b> ${escapeHTML(o.customer_name)}</p>
+            <p><b>Phone:</b> ${escapeHTML(o.phone)}</p>
+            <p><b>Address:</b> ${escapeHTML(o.address)}</p>
+            <p><b>Total:</b> ₹${Number(o.total).toFixed(2)}</p>
+            <p><b>Status:</b> ${escapeHTML(o.status)}</p>
+        `;
+
+        document.getElementById("order-items").innerHTML =
+            data.items.map(item => `
+                <p>${escapeHTML(item.product_name)} × ${Number(item.quantity)}</p>
+            `).join("");
+
+        confirmButton.hidden = o.status !== "Out for Delivery";
+        result.hidden = false;
+
+        message.textContent = confirmButton.hidden
+            ? "Parcel assigned hai, lekin status Out for Delivery hona zaroori hai."
+            : "Parcel verified! Customer ko parcel dene ke baad Confirm Delivered dabayein.";
+
+    } catch (error) {
+        currentToken = "";
+        message.textContent = error.message;
+    } finally {
+        busy = false;
+    }
+}
+
+document.getElementById("start-scan").addEventListener("click", async () => {
+    if (typeof Html5Qrcode === "undefined") {
+        message.textContent = "Scanner library load nahi hui. Internet check karein.";
+        return;
+    }
+
+    try {
+        if (!scanner) scanner = new Html5Qrcode("reader");
+
+        await scanner.start(
+            {facingMode: "environment"},
+            {fps: 10, qrbox: {width: 220, height: 220}},
+            async decodedText => {
+                await scanner.stop();
+                await findParcel(decodedText);
+            },
+            () => {}
+        );
+
+        message.textContent = "Camera scanning started.";
+    } catch (error) {
+        message.textContent = "Camera start nahi hua. Permission aur HTTPS check karein.";
+    }
+});
+
+document.getElementById("stop-scan").addEventListener("click", async () => {
+    if (scanner && scanner.isScanning) {
+        await scanner.stop();
+        message.textContent = "Camera stopped.";
+    }
+});
+
+document.getElementById("lookup-token").addEventListener("click", () => {
+    findParcel(document.getElementById("manual-token").value.trim());
+});
+
+confirmButton.addEventListener("click", async () => {
+    if (!currentToken || busy) return;
+    if (!confirm("Kya customer ko parcel mil gaya hai?")) return;
+
+    busy = true;
+    message.textContent = "Confirming delivery...";
+
+    try {
+        const response = await fetch("{{ url_for('delivery_confirm_order') }}", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({token: currentToken})
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Delivery confirmation failed.");
+
+        message.textContent = "✅ Order #" + data.order_id + " Delivered successfully!";
+        document.getElementById("order-info").innerHTML =
+            document.getElementById("order-info").innerHTML.replace(
+                /<p><b>Status:<\/b>.*?<\/p>/,
+                "<p><b>Status:</b> Delivered</p>"
+            );
+
+        currentToken = "";
+        confirmButton.hidden = true;
+
+    } catch (error) {
+        message.textContent = error.message;
+    } finally {
+        busy = false;
+    }
+});
+</script>
+{% endblock %}

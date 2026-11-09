@@ -76,6 +76,19 @@ onclick="const m=document.querySelector('.navlinks');m.classList.toggle('open');
 </button>
 {% endif %}
 
+{% if current_user and current_user.is_delivery %}
+<button class="menu-toggle" type="button"
+onclick="const m=document.querySelector('.navlinks');m.classList.toggle('open');this.setAttribute('aria-expanded',m.classList.contains('open'));">
+☰
+</button>
+<nav class="navlinks">
+<a href="{{ url_for('delivery_dashboard') }}">🚚 My Parcels</a>
+<a href="{{ url_for('delivery_scan') }}">📷 Scan Parcel QR</a>
+<a href="{{ url_for('change_password') }}">🔐 Change Password</a>
+<a href="{{ url_for('logout') }}">Logout</a>
+</nav>
+{% endif %}
+
 {% if current_user and current_user.is_admin %}
 <nav class="navlinks">
 <a href="{{ url_for('admin') }}">Dashboard</a>
@@ -99,6 +112,7 @@ onclick="const m=document.querySelector('.navlinks');m.classList.toggle('open');
 {% block content %}{% endblock %}
 </main>
 
+{% if not (current_user and (current_user.is_delivery or current_user.is_admin)) %}
 <nav class="bottom-nav">
 <a href="{{ url_for('index') }}">🏠<span>Home</span></a>
 <a href="{{ url_for('my_orders') if current_user else url_for('login') }}">🛍️<span>Orders</span></a>
@@ -106,6 +120,7 @@ onclick="const m=document.querySelector('.navlinks');m.classList.toggle('open');
 <a href="{{ url_for('account') if current_user else url_for('login') }}" class="{% if request.endpoint == 'account' %}active{% endif %}">👤<span>Account</span></a>
 <a href="{{ url_for('cart') }}">🛒<span>Cart</span></a>
 </nav>
+{% endif %}
 
 <footer>
 <div class="brand">NRP STORE</div>
