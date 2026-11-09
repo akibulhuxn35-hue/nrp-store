@@ -1,5 +1,6 @@
 import os, sqlite3, secrets, hashlib, hmac, smtplib, io
 import json, urllib.request, urllib.error
+import cloudinary.uploader
 import psycopg
 from psycopg.rows import dict_row
 from functools import wraps
@@ -12,6 +13,32 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "change-this-secret-before-deployment")
 app.config["DATABASE"] = os.path.join(app.root_path, "online_sale.db")
 app.config["DATABASE_URL"] = os.environ.get("DATABASE_URL")
+
+
+app.config["MAX_CONTENT_LENGTH"] = 40 * 1024 * 1024
+
+def upload_product_images(files):
+    selected = [f for f in files if f and f.filename]
+
+    if len(selected) > 7:
+        raise ValueError("Maximum 7 product photos are allowed.")
+
+    if selected and not os.environ.get("CLOUDINARY_URL"):
+        raise RuntimeError("Cloudinary storage is not configured.")
+
+    uploaded = []
+    for photo in selected:
+        if not photo.mimetype or not photo.mimetype.startswith("image/"):
+            raise ValueError("Please select image files only.")
+
+        result = cloudinary.uploader.upload(
+            photo,
+            folder="nrp-store/products",
+            resource_type="image"
+        )
+        uploaded.append(result["secure_url"])
+
+    return uploaded
 
 
 class PostgresDB:
@@ -140,6 +167,9 @@ def init_db():
                 "ALTER TABLE products ADD COLUMN IF NOT EXISTS owner_id BIGINT"
             )
             conn.execute(
+                "ALTER TABLE products ADD COLUMN IF NOT EXISTS images TEXT NOT NULL DEFAULT '[]'"
+            )
+            conn.execute(
                 "ALTER TABLE orders ADD COLUMN IF NOT EXISTS qr_token TEXT"
             )
             conn.execute(
@@ -237,6 +267,8 @@ def init_db():
     columns = {row[1] for row in conn.execute("PRAGMA table_info(products)")}
     if "owner_id" not in columns:
         conn.execute("ALTER TABLE products ADD COLUMN owner_id INTEGER")
+    if "images" not in columns:
+        conn.execute("ALTER TABLE products ADD COLUMN images TEXT NOT NULL DEFAULT '[]'")
 
     order_columns = {row[1] for row in conn.execute("PRAGMA table_info(orders)")}
     if "qr_token" not in order_columns:
@@ -339,8 +371,25 @@ def index():
 @app.route("/product/<int:product_id>")
 def product_detail(product_id):
     product = db().execute("SELECT * FROM products WHERE id=?", (product_id,)).fetchone()
-    if not product: abort(404)
-    return render_template("product.html", product=product)
+    if not product:
+        abort(404)
+
+    try:
+        gallery_images = json.loads(product["images"] or "[]")
+    except (TypeError, ValueError):
+        gallery_images = []
+
+    if not isinstance(gallery_images, list):
+        gallery_images = []
+
+    if not gallery_images and product["image"]:
+        gallery_images = [product["image"]]
+
+    return render_template(
+        "product.html",
+        product=product,
+        gallery_images=gallery_images
+    )
 
 
 def otp_hash(email, otp):
@@ -1258,20 +1307,38 @@ def admin():
 @app.route("/admin/product", methods=["POST"])
 @admin_required
 def admin_add_product():
-    name = request.form.get("name","").strip()
+    name = request.form.get("name", "").strip()
     try:
-        price, stock = float(request.form.get("price",0)), int(request.form.get("stock",0))
+        price = float(request.form.get("price", 0))
+        stock = int(request.form.get("stock", 0))
     except ValueError:
         flash("Price and stock must be numbers.", "danger")
         return redirect(url_for("admin"))
+
     if not name or price < 0 or stock < 0:
         flash("Please enter valid product details.", "danger")
-    else:
-        db().execute("INSERT INTO products(name,description,price,category,image,stock,featured,owner_id) VALUES(?,?,?,?,?,?,?,?)",
-          (name,request.form.get("description",""),price,request.form.get("category","General"),
-           request.form.get("image",""),stock,1 if request.form.get("featured") else 0,session["user"]["id"]))
+        return redirect(url_for("admin"))
+
+    try:
+        photos = upload_product_images(request.files.getlist("images"))
+        main_image = photos[0] if photos else request.form.get("image", "")
+        db().execute(
+            """INSERT INTO products
+               (name,description,price,category,image,images,stock,featured,owner_id)
+               VALUES(?,?,?,?,?,?,?,?,?)""",
+            (name, request.form.get("description", ""), price,
+             request.form.get("category", "General"), main_image,
+             json.dumps(photos), stock,
+             1 if request.form.get("featured") else 0,
+             session["user"]["id"])
+        )
         db().commit()
-        flash("Product added.", "success")
+        flash("Product added successfully.", "success")
+    except Exception as e:
+        db().rollback()
+        app.logger.exception("Product photo upload failed")
+        flash("Product could not be added. Check photo storage settings and try again.", "danger")
+
     return redirect(url_for("admin"))
 
 @app.route("/admin/product/<int:pid>/edit", methods=["GET", "POST"])
@@ -1298,21 +1365,41 @@ def admin_edit_product(pid):
             flash("Please enter valid product details.", "danger")
             return render_template("edit_product.html", product=product)
 
-        db().execute(
-            """UPDATE products SET name=?, description=?, price=?, category=?,
-               image=?, stock=?, featured=?
-               WHERE id=? AND owner_id=?""",
-            (name, request.form.get("description", ""), price,
-             request.form.get("category", "General"), request.form.get("image", ""),
-             stock, 1 if request.form.get("featured") else 0,
-             pid, session["user"]["id"])
-        )
-        db().commit()
-        flash("Your product has been updated.", "success")
-        return redirect(url_for("admin"))
+        try:
+            photos = upload_product_images(request.files.getlist("images"))
+
+            if photos:
+                gallery_images = photos
+                main_image = photos[0]
+            else:
+                try:
+                    gallery_images = json.loads(product["images"] or "[]")
+                except (TypeError, ValueError):
+                    gallery_images = []
+                if not gallery_images and product["image"]:
+                    gallery_images = [product["image"]]
+                main_image = product["image"]
+
+            db().execute(
+                """UPDATE products SET name=?, description=?, price=?, category=?,
+                   image=?, images=?, stock=?, featured=?
+                   WHERE id=? AND owner_id=?""",
+                (name, request.form.get("description", ""), price,
+                 request.form.get("category", "General"), main_image,
+                 json.dumps(gallery_images), stock,
+                 1 if request.form.get("featured") else 0,
+                 pid, session["user"]["id"])
+            )
+            db().commit()
+            flash("Your product has been updated.", "success")
+            return redirect(url_for("admin"))
+
+        except Exception:
+            db().rollback()
+            app.logger.exception("Product update/photo upload failed")
+            flash("Product could not be updated. Check photo storage settings.", "danger")
 
     return render_template("edit_product.html", product=product)
-
 
 @app.route("/admin/product/<int:pid>/delete", methods=["POST"])
 @admin_required

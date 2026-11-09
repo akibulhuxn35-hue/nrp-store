@@ -5,7 +5,7 @@
   <div class="panel">
     <span class="eyebrow">YOUR PRODUCT</span>
     <h1 class="page-title">Edit Product<span class="gold-dot">.</span></h1>
-    <form method="post" class="stack-form">
+    <form method="post" class="stack-form" enctype="multipart/form-data">
       <label>Product name
         <input name="name" value="{{ product.name }}" required>
       </label>
@@ -23,9 +23,16 @@
       <label>Category
         <input name="category" value="{{ product.category }}">
       </label>
-      <label>Image URL
-        <input name="image" value="{{ product.image }}">
+      {% if product.image %}
+      <label>Current Main Photo
+        <img src="{{ product.image }}" alt="{{ product.name }}"
+             style="width:120px;height:120px;object-fit:contain;border-radius:10px;">
       </label>
+      {% endif %}
+      <label>Replace Product Photos (Select up to 7)
+        <input type="file" name="images" accept="image/*" multiple>
+      </label>
+      <small>Selecting new photos will replace the current gallery.</small>
       <label class="check-label">
         <input type="checkbox" name="featured" {% if product.featured %}checked{% endif %}>
         Feature this product

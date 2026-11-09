@@ -6,3 +6,4 @@ requests>=2.31,<3.0
 psycopg>=3.2,<4.0
 
 qrcode==8.2
+cloudinary>=1.40,<2.0
