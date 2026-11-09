@@ -16,7 +16,10 @@
             </div>
             <div>
                 <b>₹{{ '%.2f'|format(o.total) }}</b>
-                <small class="status">{{ o.status }}</small>
+                <small class="status"
+                       style="{% if o.status == 'Cancelled' %}background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;padding:5px 10px;border-radius:20px;font-weight:700;{% endif %}">
+                    {{ o.status }}
+                </small>
             </div>
         </div>
 
@@ -47,15 +50,33 @@
             {% if current == 'Pending' or current == 'Processing' %}
                 <small>Your order is waiting for confirmation.</small>
             {% elif current == 'Cancelled' %}
-                <small>This order has been cancelled.</small>
+                <small style="color:#b91c1c;font-weight:700;">This order has been cancelled.</small>
+                {% if o.cancel_reason %}
+                <small>Cancellation reason: {{ o.cancel_reason }}{% if o.cancel_note %} — {{ o.cancel_note }}{% endif %}</small>
+                {% endif %}
             {% endif %}
         </div>
 
         {% if o.status in ['Pending', 'Processing', 'Confirmed', 'Packed'] %}
         <form method="POST"
               action="{{ url_for('cancel_order', order_id=o.id) }}"
-              onsubmit="return confirm('Are you sure you want to cancel this order?');">
-            <button type="submit" class="btn btn-danger">
+              class="cancel-order-form">
+            <label for="cancel-reason-{{ o.id }}"><b>Why are you cancelling?</b></label>
+            <select id="cancel-reason-{{ o.id }}" name="cancel_reason"
+                    required onchange="document.getElementById('other-reason-{{ o.id }}').style.display=this.value==='Other'?'block':'none';">
+                <option value="">Select a reason</option>
+                <option>Ordered by mistake</option>
+                <option>Found a better price</option>
+                <option>Delivery taking too long</option>
+                <option>Want to change address</option>
+                <option>Payment issue</option>
+                <option>Other</option>
+            </select>
+            <textarea id="other-reason-{{ o.id }}" name="cancel_note"
+                      maxlength="300" placeholder="Please tell us the reason..."
+                      style="display:none;width:100%;margin-top:10px;"></textarea>
+            <button type="submit" class="btn btn-danger"
+                    onclick="return confirm('Are you sure you want to cancel this order?');">
                 Cancel Order
             </button>
         </form>

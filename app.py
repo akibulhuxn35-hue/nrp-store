@@ -143,6 +143,12 @@ def init_db():
                 "ALTER TABLE orders ADD COLUMN IF NOT EXISTS qr_token TEXT"
             )
             conn.execute(
+                "ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancel_reason TEXT"
+            )
+            conn.execute(
+                "ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancel_note TEXT"
+            )
+            conn.execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_qr_token ON orders(qr_token)"
             )
             old_orders = conn.execute(
@@ -235,6 +241,10 @@ def init_db():
     order_columns = {row[1] for row in conn.execute("PRAGMA table_info(orders)")}
     if "qr_token" not in order_columns:
         conn.execute("ALTER TABLE orders ADD COLUMN qr_token TEXT")
+    if "cancel_reason" not in order_columns:
+        conn.execute("ALTER TABLE orders ADD COLUMN cancel_reason TEXT")
+    if "cancel_note" not in order_columns:
+        conn.execute("ALTER TABLE orders ADD COLUMN cancel_note TEXT")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_qr_token ON orders(qr_token)")
     old_orders = conn.execute(
         "SELECT id FROM orders WHERE qr_token IS NULL OR qr_token=''"
@@ -1070,24 +1080,38 @@ def my_orders():
 def cancel_order(order_id):
     conn = db()
 
-    order = conn.execute(
-        "SELECT id, status FROM orders WHERE id=? AND user_id=?",
-        (order_id, session["user"]["id"])
-    ).fetchone()
+    reasons = (
+        "Ordered by mistake",
+        "Found a better price",
+        "Delivery taking too long",
+        "Want to change address",
+        "Payment issue",
+        "Other"
+    )
 
-    if not order:
-        abort(404)
+    reason = request.form.get("cancel_reason", "").strip()
+    note = request.form.get("cancel_note", "").strip()
+
+    if reason not in reasons:
+        flash("Please select a valid cancellation reason.", "danger")
+        return redirect(url_for("my_orders"))
+
+    if reason == "Other" and not note:
+        flash("Please tell us your cancellation reason.", "danger")
+        return redirect(url_for("my_orders"))
+
+    if len(note) > 300:
+        flash("Cancellation note is too long.", "danger")
+        return redirect(url_for("my_orders"))
 
     allowed = ("Pending", "Processing", "Confirmed", "Packed")
 
-    if order["status"] not in allowed:
-        flash("This order can no longer be cancelled.", "danger")
-        return redirect(url_for("my_orders"))
-
     result = conn.execute(
-        """UPDATE orders SET status='Cancelled'
+        """UPDATE orders
+           SET status='Cancelled', cancel_reason=?, cancel_note=?
            WHERE id=? AND user_id=? AND status IN (?,?,?,?)""",
-        (order_id, session["user"]["id"], *allowed)
+        (reason, note if reason == "Other" else None,
+         order_id, session["user"]["id"], *allowed)
     )
 
     if result.rowcount == 1:
@@ -1105,7 +1129,8 @@ def cancel_order(order_id):
         conn.commit()
         flash("Your order has been cancelled successfully.", "success")
     else:
-        flash("Order status changed. Please refresh and try again.", "danger")
+        conn.rollback()
+        flash("This order can no longer be cancelled.", "danger")
 
     return redirect(url_for("my_orders"))
 
