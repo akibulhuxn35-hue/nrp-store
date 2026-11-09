@@ -19,7 +19,7 @@
         <p><b>Total:</b> ₹{{ '%.2f'|format(o.total) }}</p>
         <p><b>Status:</b> {{ o.status }}</p>
         <b>Products:</b>
-        {% for item in o.items %}
+        {% for item in o["items"] %}
         <p>{{ item.product_name }} × {{ item.quantity }}</p>
         {% endfor %}
     </div>
