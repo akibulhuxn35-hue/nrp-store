@@ -1065,6 +1065,51 @@ def my_orders():
     return render_template("orders.html", orders=orders)
 
 
+@app.route("/order/<int:order_id>/cancel", methods=["POST"])
+@login_required
+def cancel_order(order_id):
+    conn = db()
+
+    order = conn.execute(
+        "SELECT id, status FROM orders WHERE id=? AND user_id=?",
+        (order_id, session["user"]["id"])
+    ).fetchone()
+
+    if not order:
+        abort(404)
+
+    allowed = ("Pending", "Processing", "Confirmed", "Packed")
+
+    if order["status"] not in allowed:
+        flash("This order can no longer be cancelled.", "danger")
+        return redirect(url_for("my_orders"))
+
+    result = conn.execute(
+        """UPDATE orders SET status='Cancelled'
+           WHERE id=? AND user_id=? AND status IN (?,?,?,?)""",
+        (order_id, session["user"]["id"], *allowed)
+    )
+
+    if result.rowcount == 1:
+        items = conn.execute(
+            "SELECT product_id, quantity FROM order_items WHERE order_id=?",
+            (order_id,)
+        ).fetchall()
+
+        for item in items:
+            conn.execute(
+                "UPDATE products SET stock=stock+? WHERE id=?",
+                (item["quantity"], item["product_id"])
+            )
+
+        conn.commit()
+        flash("Your order has been cancelled successfully.", "success")
+    else:
+        flash("Order status changed. Please refresh and try again.", "danger")
+
+    return redirect(url_for("my_orders"))
+
+
 @app.route("/order-qr/<int:order_id>")
 @login_required
 def order_qr(order_id):
