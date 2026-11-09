@@ -28,8 +28,8 @@ body {background:#f5f7fa;color:#172b42;font-family:'DM Sans',sans-serif;margin:0
     z-index:9999;
     background:#fff;
     border-top:1px solid #e5eaf0;
-    display:flex;
-    justify-content:space-around;
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
     align-items:center;
     padding:8px 2px;
     padding-bottom:max(8px, env(safe-area-inset-bottom));
@@ -55,7 +55,9 @@ body {background:#f5f7fa;color:#172b42;font-family:'DM Sans',sans-serif;margin:0
     width:22px;
     height:22px;
     flex-shrink:0;
-    stroke:currentColor;
+    stroke:currentColor !important;
+    fill:none !important;
+    overflow:visible;
 }
 .bottom-nav a.active {color:#16834a;font-weight:700}
 .bottom-nav span {font-size:10px;white-space:nowrap}

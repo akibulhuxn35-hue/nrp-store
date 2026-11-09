@@ -114,34 +114,6 @@ h1, h2, h3 {
   border-radius: 9px;
 }
 
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 999;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  background: #fff;
-  border-top: 1px solid #e5eaf0;
-  padding: 9px 3px;
-  box-shadow: 0 -3px 15px rgba(0,0,0,.07);
-}
-
-.bottom-nav a {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  color: #102a43;
-  text-decoration: none;
-  font-size: 19px;
-}
-
-.bottom-nav span {
-  font-size: 10px;
-}
 
 footer {
   background: #102a43;
@@ -199,46 +171,6 @@ input, textarea, select {
     display: none;
     flex-direction: column;
     width: 100%;
-  }
-}
-
-/* NRP STORE - Rounded mobile navigation */
-@media (max-width: 760px) {
-  .topbar {
-    position: relative;
-    z-index: 100;
-  }
-
-  .topbar .navlinks {
-    display: flex !important;
-    position: absolute;
-    top: 66px;
-    left: 0;
-    right: 0;
-    background: #111114;
-    padding: 16px;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    border-bottom: 1px solid #ddd;
-  }
-
-  .topbar .navlinks a {
-    display: block;
-    width: 100%;
-    max-width: 230px;
-    padding: 10px 18px;
-    border: 1px solid #dce4ec;
-    border-radius: 30px;
-    background: #ffffff;
-    color: #102a43;
-    text-align: left;
-    font-size: 14px;
-  }
-
-  .topbar .navlinks a:hover {
-    background: #eaf1f7;
-    color: #102a43;
   }
 }
 
