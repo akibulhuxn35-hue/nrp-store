@@ -20,10 +20,46 @@ body {background:#f5f7fa;color:#172b42;font-family:'DM Sans',sans-serif;margin:0
 .admin-menu.open {display:grid;gap:12px}
 .admin-menu a {color:#102a43;text-decoration:none;padding:7px}
 .container {max-width:1200px;margin:auto;padding:15px}
-.bottom-nav {position:fixed;bottom:0;left:0;right:0;z-index:999;background:white;border-top:1px solid #e5eaf0;display:flex;justify-content:space-around;padding:9px 3px;box-shadow:0 -3px 15px #0001}
-.bottom-nav a {display:flex;flex-direction:column;align-items:center;gap:3px;color:#102a43;text-decoration:none;font-size:19px}
-.bottom-nav span {font-size:10px}
-footer {margin-bottom:65px}
+.bottom-nav {
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    z-index:9999;
+    background:#fff;
+    border-top:1px solid #e5eaf0;
+    display:flex;
+    justify-content:space-around;
+    align-items:center;
+    padding:8px 2px;
+    padding-bottom:max(8px, env(safe-area-inset-bottom));
+    box-shadow:0 -3px 15px #0001;
+    box-sizing:border-box;
+}
+.bottom-nav a {
+    flex:1;
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    color:#102a43;
+    text-decoration:none;
+    font-size:12px;
+    line-height:1.2;
+    overflow:hidden;
+}
+.bottom-nav a svg {
+    display:block;
+    width:22px;
+    height:22px;
+    flex-shrink:0;
+    stroke:currentColor;
+}
+.bottom-nav a.active {color:#16834a;font-weight:700}
+.bottom-nav span {font-size:10px;white-space:nowrap}
+footer {margin-bottom:80px}
 @media(min-width:700px){.bottom-nav{display:none}}
 @media(max-width:699px){.topbar{flex-wrap:wrap}.navlinks{gap:12px}.navlinks a{font-size:13px}.container{padding:10px}}
 
@@ -115,11 +151,21 @@ onclick="const m=document.querySelector('.navlinks');m.classList.toggle('open');
 
 {% if not (current_user and (current_user.is_delivery or current_user.is_admin)) %}
 <nav class="bottom-nav">
-<a href="{{ url_for('index') }}">🏠<span>Home</span></a>
-<a href="{{ url_for('my_orders') if current_user else url_for('login') }}">🛍️<span>Orders</span></a>
-<a href="{{ url_for('index') }}#products">📦<span>Products</span></a>
-<a href="{{ url_for('account') if current_user else url_for('login') }}" class="{% if request.endpoint == 'account' %}active{% endif %}">👤<span>Account</span></a>
-<a href="{{ url_for('cart') }}">🛒<span>Cart</span></a>
+<a href="{{ url_for('index') }}" aria-label="Home">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7"/><path d="M5 9v12h14V9M9 21v-7h6v7"/></svg>
+<span>Home</span></a>
+<a href="{{ url_for('my_orders') if current_user else url_for('login') }}" aria-label="Orders">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v17H4z"/><path d="M8 4V2h8v2M8 9h8M8 13h8M8 17h5"/></svg>
+<span>Orders</span></a>
+<a href="{{ url_for('index') }}#products" aria-label="Products">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v14H3z"/><path d="m3 7 2-4h14l2 4M8 11h8"/></svg>
+<span>Products</span></a>
+<a href="{{ url_for('account') if current_user else url_for('login') }}" class="{% if request.endpoint == 'account' %}active{% endif %}" aria-label="Account">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3-7 8-7s8 3 8 7"/></svg>
+<span>Account</span></a>
+<a href="{{ url_for('cart') }}" aria-label="Cart">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h2l2.5 12h11L21 7H6"/><circle cx="9" cy="19" r="1"/><circle cx="18" cy="19" r="1"/></svg>
+<span>Cart</span></a>
 </nav>
 {% endif %}
 
