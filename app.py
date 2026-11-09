@@ -166,6 +166,8 @@ def init_db():
             conn.execute(
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_delivery INTEGER NOT NULL DEFAULT 0"
             )
+
+            conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_owner_id BIGINT")
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS delivery_assignments (
                     order_id BIGINT PRIMARY KEY REFERENCES orders(id) ON DELETE CASCADE,
@@ -192,6 +194,8 @@ def init_db():
             conn.execute(
                 "ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP"
             )
+
+            conn.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS owner_admin_id BIGINT")
             conn.execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_qr_token ON orders(qr_token)"
             )
@@ -203,6 +207,49 @@ def init_db():
                     "UPDATE orders SET qr_token=? WHERE id=?",
                     (secrets.token_urlsafe(32), order["id"])
                 )
+
+            admin_count = conn.execute(
+                "SELECT COUNT(*) AS admin_count FROM users WHERE is_admin=1"
+            ).fetchone()["admin_count"]
+
+            if admin_count == 1:
+                admin_row = conn.execute(
+                    "SELECT id FROM users WHERE is_admin=1 LIMIT 1"
+                ).fetchone()
+                admin_id = admin_row["id"]
+
+                conn.execute(
+                    "UPDATE products SET owner_id=? WHERE owner_id IS NULL",
+                    (admin_id,)
+                )
+                conn.execute(
+                    "UPDATE users SET admin_owner_id=? WHERE is_delivery=1 AND admin_owner_id IS NULL",
+                    (admin_id,)
+                )
+
+            conn.execute("""
+                UPDATE orders
+                SET owner_admin_id = (
+                    SELECT MIN(p.owner_id)
+                    FROM order_items oi
+                    JOIN products p ON p.id=oi.product_id
+                    WHERE oi.order_id=orders.id
+                )
+                WHERE owner_admin_id IS NULL
+                AND (
+                    SELECT COUNT(DISTINCT p.owner_id)
+                    FROM order_items oi
+                    JOIN products p ON p.id=oi.product_id
+                    WHERE oi.order_id=orders.id AND p.owner_id IS NOT NULL
+                )=1
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM order_items oi
+                    LEFT JOIN products p ON p.id=oi.product_id
+                    WHERE oi.order_id=orders.id
+                    AND (p.id IS NULL OR p.owner_id IS NULL)
+                )
+            """)
 
             conn.commit()
             print("Neon database initialized safely.")
@@ -287,6 +334,9 @@ def init_db():
     if "is_delivery" not in user_columns:
         conn.execute("ALTER TABLE users ADD COLUMN is_delivery INTEGER NOT NULL DEFAULT 0")
 
+
+    if "admin_owner_id" not in user_columns:
+        conn.execute("ALTER TABLE users ADD COLUMN admin_owner_id INTEGER")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS delivery_assignments (
             order_id INTEGER PRIMARY KEY REFERENCES orders(id) ON DELETE CASCADE,
@@ -305,6 +355,9 @@ def init_db():
         conn.execute("ALTER TABLE orders ADD COLUMN cancel_note TEXT")
     if "delivered_at" not in order_columns:
         conn.execute("ALTER TABLE orders ADD COLUMN delivered_at TEXT")
+
+    if "owner_admin_id" not in order_columns:
+        conn.execute("ALTER TABLE orders ADD COLUMN owner_admin_id INTEGER")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_qr_token ON orders(qr_token)")
     old_orders = conn.execute(
         "SELECT id FROM orders WHERE qr_token IS NULL OR qr_token=''"
@@ -335,8 +388,42 @@ def init_db():
         conn.execute("INSERT INTO users(name,email,password,is_admin) VALUES(?,?,?,1)",
                      ("Store Admin", admin_email, generate_password_hash(admin_password)))
     admin_row = conn.execute("SELECT id FROM users WHERE email=?", (admin_email,)).fetchone()
-    if admin_row:
-        conn.execute("UPDATE products SET owner_id=? WHERE owner_id IS NULL", (admin_row[0],))
+    admin_count = conn.execute(
+        "SELECT COUNT(*) FROM users WHERE is_admin=1"
+    ).fetchone()[0]
+    if admin_count == 1 and admin_row:
+        conn.execute(
+            "UPDATE products SET owner_id=? WHERE owner_id IS NULL",
+            (admin_row[0],)
+        )
+        conn.execute(
+            "UPDATE users SET admin_owner_id=? WHERE is_delivery=1 AND admin_owner_id IS NULL",
+            (admin_row[0],)
+        )
+
+    conn.execute("""
+        UPDATE orders
+        SET owner_admin_id = (
+            SELECT MIN(p.owner_id)
+            FROM order_items oi
+            JOIN products p ON p.id=oi.product_id
+            WHERE oi.order_id=orders.id
+        )
+        WHERE owner_admin_id IS NULL
+        AND (
+            SELECT COUNT(DISTINCT p.owner_id)
+            FROM order_items oi
+            JOIN products p ON p.id=oi.product_id
+            WHERE oi.order_id=orders.id AND p.owner_id IS NOT NULL
+        )=1
+        AND NOT EXISTS (
+            SELECT 1
+            FROM order_items oi
+            LEFT JOIN products p ON p.id=oi.product_id
+            WHERE oi.order_id=orders.id
+            AND (p.id IS NULL OR p.owner_id IS NULL)
+        )
+    """)
 
     conn.commit()
     conn.close()
@@ -891,6 +978,12 @@ def checkout():
         flash("No products available for checkout.", "warning")
         return redirect(url_for("index"))
 
+    owner_ids = {product["owner_id"] for product, qty in products}
+    if len(owner_ids) != 1 or None in owner_ids:
+        flash("Please place separate orders for products from different stores.", "warning")
+        return redirect(url_for("cart"))
+    owner_admin_id = next(iter(owner_ids))
+
     if request.method == "POST":
         choice = request.form.get("delivery_choice", "new")
         name = phone = address = ""
@@ -971,17 +1064,17 @@ def checkout():
             if app.config["DATABASE_URL"]:
                 cur = conn.execute(
                     """INSERT INTO orders
-                    (user_id,customer_name,phone,address,total,qr_token,status)
-                    VALUES(?,?,?,?,?,?,?) RETURNING id""",
-                    (uid, name, phone, address, total, qr_token, 'Confirmed')
+                    (user_id,customer_name,phone,address,total,qr_token,status,owner_admin_id)
+                    VALUES(?,?,?,?,?,?,?,?) RETURNING id""",
+                    (uid, name, phone, address, total, qr_token, 'Confirmed', owner_admin_id)
                 )
                 oid = cur.fetchone()["id"]
             else:
                 cur = conn.execute(
                     """INSERT INTO orders
-                    (user_id,customer_name,phone,address,total,qr_token,status)
-                    VALUES(?,?,?,?,?,?,?)""",
-                    (uid, name, phone, address, total, qr_token, 'Confirmed')
+                    (user_id,customer_name,phone,address,total,qr_token,status,owner_admin_id)
+                    VALUES(?,?,?,?,?,?,?,?)""",
+                    (uid, name, phone, address, total, qr_token, 'Confirmed', owner_admin_id)
                 )
                 oid = cur.lastrowid
 
@@ -1333,7 +1426,7 @@ def admin_scan_order():
                                orders.created_at, users.email
                         FROM orders
                         JOIN users ON users.id=orders.user_id
-                        WHERE orders.id=?"""
+                        WHERE orders.id=? AND orders.owner_admin_id=?"""
         lookup_value = int(order_id)
     elif token and len(token) <= 200:
         lookup_sql = """SELECT orders.id, orders.customer_name, orders.phone,
@@ -1341,13 +1434,13 @@ def admin_scan_order():
                                orders.created_at, users.email
                         FROM orders
                         JOIN users ON users.id=orders.user_id
-                        WHERE orders.qr_token=?"""
+                        WHERE orders.qr_token=? AND orders.owner_admin_id=?"""
         lookup_value = token
     else:
         return jsonify({"error": "Enter a valid Order ID or QR token."}), 400
 
     conn = db()
-    found = conn.execute(lookup_sql, (lookup_value,)).fetchone()
+    found = conn.execute(lookup_sql, (lookup_value, session["user"]["id"])).fetchone()
 
     if not found:
         return jsonify({"error": "Order not found."}), 404
@@ -1384,7 +1477,10 @@ def delivery_scan_order():
            FROM delivery_assignments
            JOIN orders ON orders.id=delivery_assignments.order_id
            JOIN users ON users.id=orders.user_id
-           WHERE orders.qr_token=? AND delivery_assignments.delivery_user_id=?""",
+           JOIN users AS delivery_user ON delivery_user.id=delivery_assignments.delivery_user_id
+           WHERE orders.qr_token=? AND delivery_assignments.delivery_user_id=?
+           AND orders.owner_admin_id=delivery_user.admin_owner_id
+           AND delivery_user.admin_owner_id IS NOT NULL""",
         (token, session["user"]["id"])
     ).fetchone()
 
@@ -1412,10 +1508,13 @@ def delivery_confirm_order():
 
     conn = db()
     order = conn.execute(
-        """SELECT orders.id, orders.status
+        """SELECT orders.id, orders.status, orders.owner_admin_id
            FROM delivery_assignments
            JOIN orders ON orders.id=delivery_assignments.order_id
-           WHERE orders.qr_token=? AND delivery_assignments.delivery_user_id=?""",
+             JOIN users AS delivery_user ON delivery_user.id=delivery_assignments.delivery_user_id
+           WHERE orders.qr_token=? AND delivery_assignments.delivery_user_id=?
+           AND orders.owner_admin_id=delivery_user.admin_owner_id
+           AND delivery_user.admin_owner_id IS NOT NULL""",
         (token, session["user"]["id"])
     ).fetchone()
 
@@ -1433,8 +1532,8 @@ def delivery_confirm_order():
 
     result = conn.execute(
         """UPDATE orders SET status='Delivered', delivered_at=CURRENT_TIMESTAMP
-           WHERE id=? AND status='Out for Delivery'""",
-        (order["id"],)
+           WHERE id=? AND status='Out for Delivery' AND owner_admin_id=?""",
+        (order["id"], order["owner_admin_id"])
     )
     if result.rowcount != 1:
         conn.rollback()
@@ -1455,8 +1554,8 @@ def admin_confirm_delivery():
 
     conn = db()
     order = conn.execute(
-        "SELECT id, status FROM orders WHERE qr_token=?",
-        (token,)
+        "SELECT id, status FROM orders WHERE qr_token=? AND owner_admin_id=?",
+        (token, session["user"]["id"])
     ).fetchone()
 
     if not order:
@@ -1476,8 +1575,8 @@ def admin_confirm_delivery():
     result = conn.execute(
         """UPDATE orders
            SET status='Delivered', delivered_at=CURRENT_TIMESTAMP
-           WHERE id=? AND status='Out for Delivery'""",
-        (order["id"],)
+           WHERE id=? AND status='Out for Delivery' AND owner_admin_id=?""",
+          (order["id"], session["user"]["id"])
     )
     conn.commit()
 
@@ -1499,8 +1598,8 @@ def admin_print_order(oid):
     row = conn.execute(
         """SELECT orders.*, users.email
            FROM orders JOIN users ON users.id=orders.user_id
-           WHERE orders.id=?""",
-        (oid,)
+           WHERE orders.id=? AND orders.owner_admin_id=?""",
+        (oid, session["user"]["id"])
     ).fetchone()
 
     if not row:
@@ -1541,8 +1640,8 @@ def admin_print_order(oid):
 @admin_required
 def admin_order_qr(oid):
     row = db().execute(
-        "SELECT qr_token FROM orders WHERE id=?",
-        (oid,)
+        "SELECT qr_token FROM orders WHERE id=? AND owner_admin_id=?",
+        (oid, session["user"]["id"])
     ).fetchone()
 
     if not row or not row["qr_token"]:
@@ -1583,9 +1682,9 @@ def admin_create_delivery():
         return redirect(url_for("admin"))
 
     conn.execute(
-        """INSERT INTO users(name,email,password,is_admin,is_delivery)
-           VALUES(?,?,?,0,1)""",
-        (name, email, generate_password_hash(password))
+        """INSERT INTO users(name,email,password,is_admin,is_delivery,admin_owner_id)
+           VALUES(?,?,?,0,1,?)""",
+        (name, email, generate_password_hash(password), session["user"]["id"])
     )
     conn.commit()
     flash("Delivery boy account created successfully.", "success")
@@ -1597,7 +1696,8 @@ def admin_create_delivery():
 def admin():
     conn = db()
     delivery_staff = conn.execute(
-        "SELECT id,name,email FROM users WHERE is_delivery=1 ORDER BY name"
+        "SELECT id,name,email FROM users WHERE is_delivery=1 AND admin_owner_id=? ORDER BY name"
+    , (session["user"]["id"],)
     ).fetchall()
 
     products = conn.execute(
@@ -1608,7 +1708,9 @@ def admin():
     rows = conn.execute(
         """SELECT orders.*, users.email FROM orders
            JOIN users ON users.id=orders.user_id
-           ORDER BY orders.id DESC"""
+           WHERE orders.owner_admin_id=?
+           ORDER BY orders.id DESC""",
+        (session["user"]["id"],)
     ).fetchall()
 
     orders = [dict(order) for order in rows]
@@ -1619,8 +1721,8 @@ def admin():
             """SELECT users.id, users.name, users.email
                FROM delivery_assignments
                JOIN users ON users.id=delivery_assignments.delivery_user_id
-               WHERE delivery_assignments.order_id=?""",
-            (order["id"],)
+               WHERE delivery_assignments.order_id=? AND users.admin_owner_id=?""",
+              (order["id"], session["user"]["id"])
         ).fetchone()
         order["delivery_boy"] = dict(assignment) if assignment else None
 
@@ -1656,7 +1758,8 @@ def admin():
         "products": len(products),
         "orders": len(orders),
         "sales": conn.execute(
-            "SELECT COALESCE(SUM(total),0) AS sales FROM orders"
+            "SELECT COALESCE(SUM(total),0) AS sales FROM orders WHERE owner_admin_id=?",
+            (session["user"]["id"],)
         ).fetchone()["sales"]
     }
     return render_template("admin.html", products=products, orders=orders, stats=stats, delivery_staff=delivery_staff)
@@ -1669,8 +1772,11 @@ def delivery_dashboard():
         """SELECT orders.*, users.name AS customer_name, users.email
            FROM delivery_assignments
            JOIN orders ON orders.id=delivery_assignments.order_id
+             JOIN users AS delivery_user ON delivery_user.id=delivery_assignments.delivery_user_id
            JOIN users ON users.id=orders.user_id
            WHERE delivery_assignments.delivery_user_id=?
+             AND orders.owner_admin_id=delivery_user.admin_owner_id
+             AND delivery_user.admin_owner_id IS NOT NULL
            ORDER BY orders.id DESC""",
         (session["user"]["id"],)
     ).fetchall()
@@ -1707,11 +1813,12 @@ def admin_assign_delivery(oid):
 
     conn = db()
     delivery_user = conn.execute(
-        "SELECT id FROM users WHERE id=? AND is_delivery=1",
-        (delivery_user_id,)
+        "SELECT id FROM users WHERE id=? AND is_delivery=1 AND admin_owner_id=?",
+        (delivery_user_id, session["user"]["id"])
     ).fetchone()
     order = conn.execute(
-        "SELECT id,status FROM orders WHERE id=?", (oid,)
+        "SELECT id,status FROM orders WHERE id=? AND owner_admin_id=?",
+        (oid, session["user"]["id"])
     ).fetchone()
 
     if not delivery_user or not order:
@@ -1860,8 +1967,8 @@ def admin_order_status(oid):
 
     conn = db()
     result = conn.execute(
-        "UPDATE orders SET status=? WHERE id=?",
-        (status, oid)
+        "UPDATE orders SET status=? WHERE id=? AND owner_admin_id=?",
+        (status, oid, session["user"]["id"])
     )
     conn.commit()
 
