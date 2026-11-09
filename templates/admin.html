@@ -37,6 +37,11 @@
             {% endfor %}
         </div>
 
+
+        <div style="margin:12px 0">
+            <a class="mini-btn" target="_blank"
+               href="{{ url_for('admin_print_order', oid=o.id) }}">🖨️ Print Parcel Slip</a>
+        </div>
         <details class="order-details">
             <summary>View Full Order Details</summary>
             <div class="order-customer-details">

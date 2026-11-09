@@ -1335,6 +1335,77 @@ def admin_confirm_delivery():
         "status": "Delivered"
     })
 
+
+@app.route("/admin/order/<int:oid>/print")
+@admin_required
+def admin_print_order(oid):
+    conn = db()
+    row = conn.execute(
+        """SELECT orders.*, users.email
+           FROM orders JOIN users ON users.id=orders.user_id
+           WHERE orders.id=?""",
+        (oid,)
+    ).fetchone()
+
+    if not row:
+        abort(404)
+
+    order = dict(row)
+    items = conn.execute(
+        """SELECT oi.*, p.image AS current_image, p.images AS current_images
+           FROM order_items oi
+           LEFT JOIN products p ON p.id=oi.product_id
+           WHERE oi.order_id=? ORDER BY oi.id""",
+        (oid,)
+    ).fetchall()
+
+    order_items = []
+    for row in items:
+        item = dict(row)
+        try:
+            photos = json.loads(item.get("current_images") or "[]")
+        except (TypeError, ValueError):
+            photos = []
+        if not isinstance(photos, list):
+            photos = []
+        item["photo"] = next(
+            (x for x in photos if isinstance(x, str) and x.strip()),
+            item.get("current_image") or ""
+        )
+        order_items.append(item)
+
+    return render_template(
+        "packing_slip.html",
+        order=order,
+        items=order_items
+    )
+
+
+@app.route("/admin/order/<int:oid>/qr")
+@admin_required
+def admin_order_qr(oid):
+    row = db().execute(
+        "SELECT qr_token FROM orders WHERE id=?",
+        (oid,)
+    ).fetchone()
+
+    if not row or not row["qr_token"]:
+        abort(404)
+
+    import qrcode
+    from qrcode.image.svg import SvgPathImage
+
+    qr = qrcode.make(
+        row["qr_token"],
+        image_factory=SvgPathImage,
+        box_size=8,
+        border=4
+    )
+    output = io.BytesIO()
+    qr.save(output)
+    return Response(output.getvalue(), mimetype="image/svg+xml")
+
+
 @app.route("/admin")
 @admin_required
 def admin():
