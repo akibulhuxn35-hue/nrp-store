@@ -80,6 +80,18 @@
             <small>Thank you for shopping with NRP STORE!</small>
         </div>
         <img src="{{ url_for('admin_order_qr', oid=order.id) }}" alt="Order QR Code">
+        <div style="margin-top:12px">
+            <b>Order Token (Unique)</b>
+            <input id="order-token" type="text" value="{{ order.qr_token }}" readonly
+                   style="width:100%;padding:10px;margin-top:6px;box-sizing:border-box">
+            <button type="button" class="mini-btn" onclick="
+                const field=document.getElementById('order-token');
+                field.select();
+                field.setSelectionRange(0, 99999);
+                document.execCommand('copy');
+                this.textContent='Copied!';
+            ">Copy Token</button>
+        </div>
     </div>
 </div>
 
