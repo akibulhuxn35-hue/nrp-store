@@ -1,5 +1,60 @@
 {% extends "base.html" %}
-{% block title %}Order Successful — NRP STORE{% endblock %}
+{% block title %}Order Successful — NRP STORE
+<div style="text-align:center;margin-top:15px">
+    <button id="playSuccessSound"
+        style="display:none;background:#16a34a;color:white;border:0;
+        padding:12px 20px;border-radius:12px;font-weight:bold">
+        🔊 Tap to Play Success Sound
+    </button>
+</div>
+
+<script>
+(function () {
+    const btn = document.getElementById("playSuccessSound");
+
+    function playSound() {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+
+        const ctx = new AudioContext();
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+
+        notes.forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = "sine";
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.001, ctx.currentTime + i * 0.13);
+            gain.gain.exponentialRampToValueAtTime(
+                0.18, ctx.currentTime + i * 0.13 + 0.03
+            );
+            gain.gain.exponentialRampToValueAtTime(
+                0.001, ctx.currentTime + i * 0.13 + 0.22
+            );
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + i * 0.13);
+            osc.stop(ctx.currentTime + i * 0.13 + 0.24);
+        });
+
+        setTimeout(() => ctx.close(), 1200);
+    }
+
+    window.addEventListener("load", async function () {
+        try {
+            playSound();
+        } catch (e) {
+            btn.style.display = "inline-block";
+        }
+    });
+
+    btn.addEventListener("click", playSound);
+})();
+</script>
+
+{% endblock %}
 
 {% block content %}
 <style>
@@ -164,4 +219,59 @@
         </a>
     </div>
 </section>
+
+<div style="text-align:center;margin-top:15px">
+    <button id="playSuccessSound"
+        style="display:none;background:#16a34a;color:white;border:0;
+        padding:12px 20px;border-radius:12px;font-weight:bold">
+        🔊 Tap to Play Success Sound
+    </button>
+</div>
+
+<script>
+(function () {
+    const btn = document.getElementById("playSuccessSound");
+
+    function playSound() {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+
+        const ctx = new AudioContext();
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+
+        notes.forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = "sine";
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.001, ctx.currentTime + i * 0.13);
+            gain.gain.exponentialRampToValueAtTime(
+                0.18, ctx.currentTime + i * 0.13 + 0.03
+            );
+            gain.gain.exponentialRampToValueAtTime(
+                0.001, ctx.currentTime + i * 0.13 + 0.22
+            );
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + i * 0.13);
+            osc.stop(ctx.currentTime + i * 0.13 + 0.24);
+        });
+
+        setTimeout(() => ctx.close(), 1200);
+    }
+
+    window.addEventListener("load", async function () {
+        try {
+            playSound();
+        } catch (e) {
+            btn.style.display = "inline-block";
+        }
+    });
+
+    btn.addEventListener("click", playSound);
+})();
+</script>
+
 {% endblock %}
