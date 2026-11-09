@@ -80,6 +80,8 @@ onclick="const m=document.querySelector('.navlinks');m.classList.toggle('open');
 <nav class="navlinks">
 <a href="{{ url_for('admin') }}">Dashboard</a>
 <a href="{{ url_for('admin') }}">Add New Product</a>
+<a href="{{ url_for('admin') }}#orders-panel">Recent Orders</a>
+<a href="{{ url_for('admin_scan') }}">📷 Scan QR</a>
 </nav>
 {% endif %}
 </header>
