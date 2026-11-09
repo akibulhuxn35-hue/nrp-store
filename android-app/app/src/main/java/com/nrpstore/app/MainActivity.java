@@ -6,8 +6,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Build;
-import android.view.WindowInsets;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -28,24 +26,6 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         webView = new WebView(this);
         setContentView(webView);
-
-        webView.setOnApplyWindowInsetsListener((view, insets) -> {
-            int bottom;
-            if (Build.VERSION.SDK_INT >= 30) {
-                bottom = insets.getInsets(
-                    WindowInsets.Type.navigationBars()
-                ).bottom;
-            } else {
-                bottom = insets.getSystemWindowInsetBottom();
-            }
-            view.setPadding(
-                view.getPaddingLeft(),
-                view.getPaddingTop(),
-                view.getPaddingRight(),
-                bottom
-            );
-            return insets;
-        });
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
