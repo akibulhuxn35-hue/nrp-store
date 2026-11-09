@@ -69,27 +69,19 @@ footer {margin-bottom:65px}
 <header class="topbar">
 <a class="brand" href="{{ url_for('index') }}"><span class="brand-mark">N</span> NRP STORE</a>
 
+{% if current_user and current_user.is_admin %}
 <button class="menu-toggle" type="button"
 onclick="const m=document.querySelector('.navlinks');m.classList.toggle('open');this.setAttribute('aria-expanded',m.classList.contains('open'));">
 ☰
 </button>
+{% endif %}
 
-<nav class="navlinks">
-<a href="{{ url_for('index') }}">Home</a>
-<a href="{{ url_for('index') }}#products">Products</a>
 {% if current_user and current_user.is_admin %}
+<nav class="navlinks">
 <a href="{{ url_for('admin') }}">Dashboard</a>
 <a href="{{ url_for('admin') }}">Add New Product</a>
-{% endif %}
-{% if current_user %}
-<a href="{{ url_for('my_orders') }}">Orders</a>
-<a href="{{ url_for('addresses') }}">My Addresses</a>
-<a href="{{ url_for('logout') }}">Logout</a>
-{% else %}
-<a href="{{ url_for('login') }}">Login</a>
-{% endif %}
-<a href="{{ url_for('cart') }}">Cart ({{ cart_count }})</a>
 </nav>
+{% endif %}
 </header>
 
 <main class="container">
