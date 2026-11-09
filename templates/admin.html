@@ -18,7 +18,7 @@
         </div>
 
         <div class="order-products">
-            {% for item in o.items %}
+            {% for item in o['items'] %}
             <div class="order-product">
                 {% if item.photo %}
                 <img src="{{ item.photo }}" alt="{{ item.product_name }}">
