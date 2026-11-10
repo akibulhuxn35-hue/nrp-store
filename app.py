@@ -518,6 +518,34 @@ def product_detail(product_id):
     )
 
 
+
+@app.route("/sitemap.xml")
+def sitemap():
+    products = db().execute("SELECT id FROM products ORDER BY id DESC").fetchall()
+    urls = [url_for("index", _external=True)]
+    urls.extend(
+        url_for("product_detail", product_id=row["id"], _external=True)
+        for row in products
+    )
+    xml_urls = "".join(f"<url><loc>{u}</loc></url>" for u in urls)
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        + xml_urls + '</urlset>'
+    )
+    return Response(xml, mimetype="application/xml")
+
+
+@app.route("/robots.txt")
+def robots_txt():
+    content = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Sitemap: " + url_for("sitemap", _external=True) + "\n"
+    )
+    return Response(content, mimetype="text/plain")
+
+
 def otp_hash(email, otp):
     message = (email + ":" + otp).encode()
     return hmac.new(
