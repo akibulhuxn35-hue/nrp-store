@@ -5,25 +5,28 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-
-
-
-/* NRP STORE opening animation with automatic sound attempt */
+/* NRP STORE opening animation: once per browsing session */
 document.addEventListener("DOMContentLoaded", function () {
     const splash = document.getElementById("nrp-splash");
     if (!splash) return;
+
+    try {
+        if (sessionStorage.getItem("nrpSplashShown") === "1") {
+            splash.remove();
+            return;
+        }
+        sessionStorage.setItem("nrpSplashShown", "1");
+    } catch (e) {}
 
     const soundButton = document.getElementById("nrp-sound-toggle");
     let soundStarted = false;
 
     function playSplashSound() {
         if (soundStarted) return;
-
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (!AudioCtx) return;
 
         const ctx = new AudioCtx();
-
         ctx.resume().then(() => {
             const master = ctx.createGain();
             master.gain.setValueAtTime(0.0001, ctx.currentTime);
@@ -49,16 +52,11 @@ document.addEventListener("DOMContentLoaded", function () {
         }).catch(() => {});
     }
 
-    if (soundButton) {
-        soundButton.addEventListener("click", playSplashSound);
-    }
-
+    if (soundButton) soundButton.addEventListener("click", playSplashSound);
     playSplashSound();
 
-    setTimeout(function () {
+    setTimeout(() => {
         splash.classList.add("is-leaving");
-        setTimeout(function () {
-            splash.remove();
-        }, 700);
+        setTimeout(() => splash.remove(), 700);
     }, 5000);
 });
