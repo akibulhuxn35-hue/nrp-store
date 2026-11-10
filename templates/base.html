@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#102a43">
+<link rel="icon" type="image/png" sizes="48x48" href="{{ url_for('static', filename='images/favicon-48.png') }}">
+<link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='images/favicon-512.png') }}">
+
 <title>{% block title %}NRP STORE{% endblock %}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -11,7 +14,8 @@
 <style>
 body {background:#f5f7fa;color:#172b42;font-family:'DM Sans',sans-serif;margin:0}
 .topbar {background:#102a43;color:white;display:flex;align-items:center;justify-content:space-between;padding:15px 5%;position:relative}
-.brand {color:white;text-decoration:none;font-size:22px;font-weight:800}
+.brand {color:white;text-decoration:none;font-size:22px;font-weight:800;display:flex;align-items:center;gap:9px}
+.brand-logo {height:38px;width:auto;max-width:58px;object-fit:contain;border-radius:6px}
 .brand-mark {color:#52d273}
 .navlinks {display:flex;align-items:center;gap:20px}
 .navlinks a {color:white;text-decoration:none;font-weight:600}
@@ -105,7 +109,7 @@ footer {margin-bottom:80px}
 <body>
 
 <header class="topbar">
-<a class="brand" href="{{ url_for('index') }}"><span class="brand-mark">N</span> NRP STORE</a>
+<a class="brand" href="{{ url_for('index') }}"><img class="brand-logo" src="{{ url_for('static', filename='images/nrp-logo.png') }}" alt="NRP logo"> NRP STORE</a>
 
 {% if current_user and current_user.is_admin %}
 <button class="menu-toggle" type="button"
