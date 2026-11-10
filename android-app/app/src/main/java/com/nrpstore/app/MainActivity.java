@@ -14,15 +14,10 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebSettings;
 import android.widget.Toast;
-import android.widget.FrameLayout;
-import android.widget.ProgressBar;
-import android.view.Gravity;
-import android.view.View;
 
 public class MainActivity extends Activity {
     private static final String HOME = "https://nrp-store.onrender.com";
     private WebView webView;
-    private ProgressBar loadingBar;
     private ValueCallback<Uri[]> fileCallback;
     private PermissionRequest pendingPermission;
 
@@ -30,19 +25,7 @@ public class MainActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         webView = new WebView(this);
-        FrameLayout root = new FrameLayout(this);
-        webView.setBackgroundColor(android.graphics.Color.WHITE);
-        root.addView(webView, new FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT,
-            FrameLayout.LayoutParams.MATCH_PARENT
-        ));
-        loadingBar = new ProgressBar(this, null,
-            android.R.attr.progressBarStyleHorizontal);
-        loadingBar.setMax(100);
-        FrameLayout.LayoutParams progressParams = new FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT, 5, Gravity.TOP);
-        root.addView(loadingBar, progressParams);
-        setContentView(root);
+        setContentView(webView);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -52,18 +35,6 @@ public class MainActivity extends Activity {
         settings.setMediaPlaybackRequiresUserGesture(true);
 
         webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
-                loadingBar.setProgress(0);
-                loadingBar.setVisibility(View.VISIBLE);
-            }
-
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                loadingBar.setProgress(100);
-                loadingBar.setVisibility(View.GONE);
-            }
-
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
@@ -80,16 +51,6 @@ public class MainActivity extends Activity {
         });
 
         webView.setWebChromeClient(new WebChromeClient() {
-            @Override
-            public void onProgressChanged(WebView view, int progress) {
-                loadingBar.setProgress(progress);
-                if (progress >= 100) {
-                    loadingBar.setVisibility(View.GONE);
-                } else {
-                    loadingBar.setVisibility(View.VISIBLE);
-                }
-            }
-
             @Override
             public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback,
                     FileChooserParams params) {
