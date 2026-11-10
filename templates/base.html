@@ -12,6 +12,17 @@
 <meta property="og:site_name" content="NRP STORE">
 <meta property="og:type" content="website">
 <meta property="og:description" content="{% block og_description %}Explore products and enjoy online shopping at NRP STORE.{% endblock %}">
+{% if request.endpoint == 'index' %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "NRP STORE",
+  "alternateName": "NRP Store",
+  "url": "https://nrp-store.onrender.com/"
+}
+</script>
+{% endif %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static',filename='css/style.css') }}">
