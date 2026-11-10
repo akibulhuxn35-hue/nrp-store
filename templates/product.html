@@ -1,14 +1,7 @@
 {% extends "base.html" %}
-{% block title %}{{ product.name }} — NRP Store<script>
-function changeProductImage(button, imageUrl) {
-  document.getElementById("mainProductImage").src = imageUrl;
-  document.querySelectorAll(".product-thumb").forEach(
-    item => item.classList.remove("active")
-  );
-  button.classList.add("active");
-}
-</script>
-{% endblock %}
+{% block title %}{{ product.name }} | NRP STORE{% endblock %}
+{% block meta_description %}{{ (product.description or ('Shop ' ~ product.name ~ ' at NRP STORE.'))|striptags|truncate(155, True, '') }}{% endblock %}
+{% block og_description %}{{ (product.description or ('Shop ' ~ product.name ~ ' at NRP STORE.'))|striptags|truncate(155, True, '') }}{% endblock %}
 {% block content %}
 <div class="detail-layout">
   <div class="detail-image">
@@ -63,4 +56,13 @@ function changeProductImage(button, imageUrl) {
     <a class="back-link" href="{{ url_for('index') }}">← Back to shop</a>
   </div>
 </div>
+<script>
+function changeProductImage(button, imageUrl) {
+  document.getElementById("mainProductImage").src = imageUrl;
+  document.querySelectorAll(".product-thumb").forEach(
+    item => item.classList.remove("active")
+  );
+  button.classList.add("active");
+}
+</script>
 {% endblock %}
