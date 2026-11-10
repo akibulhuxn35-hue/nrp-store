@@ -64,5 +64,23 @@ function changeProductImage(button, imageUrl) {
   );
   button.classList.add("active");
 }
+
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": {{ product.name|striptags|tojson }},
+  "description": {{ (product.description or product.name)|striptags|tojson }},
+  "image": {{ (gallery_images[0] if gallery_images else product.image)|tojson }},
+  "offers": {
+    "@type": "Offer",
+    "priceCurrency": "INR",
+    "price": {{ "%.2f"|format(product.price) }},
+    "availability": "{% if product.stock > 0 %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}",
+    "url": {{ request.base_url|tojson }}
+  }
+}
 </script>
 {% endblock %}
