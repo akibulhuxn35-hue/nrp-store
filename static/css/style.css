@@ -1153,3 +1153,75 @@ input, textarea, select {
         height: 55px;
     }
 }
+
+
+/* NRP STORE premium opening animation */
+.nrp-splash {
+  position: fixed; inset: 0; z-index: 100000;
+  display: grid; place-items: center; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 42%, #164c79 0%, #102a43 42%, #061525 100%);
+  color: #fff; opacity: 1; visibility: visible;
+  transition: opacity .65s ease, visibility .65s ease;
+}
+.nrp-splash.is-leaving { opacity: 0; visibility: hidden; pointer-events: none; }
+.nrp-splash-glow {
+  position: absolute; width: 270px; height: 270px; border-radius: 50%;
+  background: #38aaff; filter: blur(90px); opacity: .25;
+  animation: nrp-glow 2.8s ease-in-out infinite alternate;
+}
+.nrp-splash-content {
+  position: relative; z-index: 1; display: flex; align-items: center;
+  flex-direction: column; text-align: center; padding: 24px;
+}
+.nrp-logo-wrap {
+  width: 142px; height: 142px; display: grid; place-items: center;
+  border-radius: 32px; background: rgba(255,255,255,.07);
+  border: 1px solid rgba(160,215,255,.28);
+  box-shadow: 0 0 35px rgba(56,170,255,.25), inset 0 0 25px rgba(255,255,255,.06);
+  animation: nrp-logo-in 1.1s cubic-bezier(.2,.8,.2,1) both;
+}
+.nrp-splash-logo { width: 112px; height: 112px; object-fit: contain; }
+.nrp-splash-name {
+  margin-top: 25px; font-size: 29px; font-weight: 800;
+  letter-spacing: 4px; color: white;
+  text-shadow: 0 0 22px rgba(91,190,255,.65);
+  animation: nrp-text-in .9s .35s both;
+}
+.nrp-splash-tagline {
+  margin: 7px 0 22px; color: #c7e5ff; font-size: 13px;
+  letter-spacing: .5px; animation: nrp-text-in .9s .55s both;
+}
+.nrp-sound-btn {
+  border: 1px solid rgba(190,225,255,.45); border-radius: 30px;
+  background: rgba(255,255,255,.09); color: white;
+  padding: 10px 18px; font-size: 12px; cursor: pointer;
+  animation: nrp-text-in .9s .7s both;
+}
+.nrp-sound-btn:active { transform: scale(.97); }
+.nrp-splash-line {
+  width: 115px; height: 2px; margin-top: 27px;
+  background: rgba(255,255,255,.18); overflow: hidden;
+}
+.nrp-splash-line span {
+  display: block; height: 100%; width: 40%; background: #79caff;
+  animation: nrp-progress 2.4s ease-in-out forwards;
+}
+@keyframes nrp-logo-in {
+  from { opacity: 0; transform: scale(.72) translateY(12px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes nrp-text-in {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes nrp-glow {
+  from { transform: scale(.85); opacity: .16; }
+  to { transform: scale(1.2); opacity: .34; }
+}
+@keyframes nrp-progress { from { width: 0; } to { width: 100%; } }
+@media (prefers-reduced-motion: reduce) {
+  .nrp-splash *, .nrp-splash *::before {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}

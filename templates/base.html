@@ -124,6 +124,23 @@ footer {margin-bottom:80px}
 </head>
 <body>
 
+<div id="nrp-splash" class="nrp-splash" role="status" aria-label="NRP STORE opening">
+  <div class="nrp-splash-glow"></div>
+  <div class="nrp-splash-content">
+    <div class="nrp-logo-wrap">
+      <img src="{{ url_for('static', filename='images/nrp-logo.png') }}"
+           alt="NRP STORE original logo" class="nrp-splash-logo">
+    </div>
+    <div class="nrp-splash-name">NRP STORE</div>
+    <p class="nrp-splash-tagline">Everything you love, in one place.</p>
+    <button type="button" id="nrp-sound-toggle" class="nrp-sound-btn">
+      ♫ Enable relaxing sound
+    </button>
+    <div class="nrp-splash-line"><span></span></div>
+  </div>
+</div>
+
+
 <header class="topbar">
 <a class="brand" href="{{ url_for('index') }}"><img class="brand-logo" src="{{ url_for('static', filename='images/nrp-logo.png') }}" alt="NRP logo"> NRP STORE</a>
 
