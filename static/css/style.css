@@ -1829,3 +1829,151 @@ input, textarea, select {
         animation: none;
     }
 }
+
+/* NRP STORE PRODUCT CARDS V3 */
+.nrp-product-grid {
+    gap: 18px;
+}
+
+.nrp-product-card {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #e9e2ff;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 7px 24px rgba(63, 31, 140, .08);
+    transition: transform .25s ease, box-shadow .25s ease;
+}
+
+.nrp-product-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 15px 32px rgba(75, 35, 170, .16);
+}
+
+.nrp-product-image {
+    height: 210px;
+    display: block;
+    background: linear-gradient(145deg, #faf8ff, #f0ebff);
+}
+
+.nrp-product-image img {
+    transition: transform .35s ease;
+}
+
+.nrp-product-card:hover .nrp-product-image img {
+    transform: scale(1.07);
+}
+
+.nrp-product-info {
+    padding: 15px;
+}
+
+.nrp-product-category {
+    display: inline-block;
+    color: #7444d5;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+}
+
+.nrp-product-info h3 {
+    min-height: 38px;
+    margin: 7px 0 13px;
+    color: #21134f;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.nrp-product-info h3 a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.nrp-product-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.nrp-product-bottom strong {
+    color: #5417c9;
+    font-size: 19px;
+    font-weight: 900;
+}
+
+.nrp-add-btn {
+    padding: 9px 14px;
+    border: 0;
+    border-radius: 25px;
+    background: linear-gradient(135deg, #7228e8, #1766f5);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(91, 42, 210, .2);
+    transition: transform .2s, box-shadow .2s;
+}
+
+.nrp-add-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 17px rgba(91, 42, 210, .3);
+}
+
+.nrp-add-btn:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.nrp-product-card .wishlist-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid #e5dcff;
+    border-radius: 50%;
+    background: rgba(255,255,255,.95);
+    color: #6924d5;
+    box-shadow: 0 3px 12px rgba(45, 20, 100, .1);
+    transition: transform .2s, background .2s;
+}
+
+.nrp-product-card .wishlist-btn:hover {
+    transform: scale(1.1);
+    background: #f1eaff;
+}
+
+.nrp-product-card .wishlist-btn.saved {
+    color: #e32969;
+    background: #fff0f5;
+}
+
+@media(max-width:760px) {
+    .nrp-product-grid {
+        gap: 12px;
+    }
+
+    .nrp-product-card {
+        border-radius: 16px;
+    }
+
+    .nrp-product-image {
+        height: 155px;
+    }
+
+    .nrp-product-info {
+        padding: 11px;
+    }
+
+    .nrp-product-info h3 {
+        font-size: 12px;
+    }
+
+    .nrp-product-bottom strong {
+        font-size: 16px;
+    }
+
+    .nrp-add-btn {
+        padding: 8px 11px;
+        font-size: 10px;
+    }
+}
