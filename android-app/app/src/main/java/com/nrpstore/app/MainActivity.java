@@ -1,6 +1,19 @@
 package com.nrpstore.app;
 
 import android.Manifest;
+import android.webkit.JavascriptInterface;
+import android.os.Handler;
+import android.os.Looper;
+import java.util.concurrent.Executor;
+import androidx.credentials.CredentialManager;
+import androidx.credentials.GetCredentialRequest;
+import androidx.credentials.GetCredentialResponse;
+import androidx.credentials.Credential;
+import androidx.credentials.CustomCredential;
+import androidx.credentials.CredentialManagerCallback;
+import androidx.credentials.exceptions.GetCredentialException;
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -20,11 +33,13 @@ public class MainActivity extends Activity {
     private WebView webView;
     private ValueCallback<Uri[]> fileCallback;
     private PermissionRequest pendingPermission;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         webView = new WebView(this);
+        webView.addJavascriptInterface(new GoogleBridge(), "AndroidGoogleSignIn");
         setContentView(webView);
 
         WebSettings settings = webView.getSettings();
@@ -88,6 +103,95 @@ public class MainActivity extends Activity {
             webView.loadUrl(HOME);
         } else {
             webView.restoreState(savedInstanceState);
+        }
+    }
+
+
+    private class GoogleBridge {
+        @JavascriptInterface
+        public void signInWithGoogle() {
+            runOnUiThread(() -> {
+                Uri current = webView == null || webView.getUrl() == null
+                    ? null : Uri.parse(webView.getUrl());
+
+                if (current == null ||
+                    !"https".equals(current.getScheme()) ||
+                    !"nrp-store.onrender.com".equals(current.getHost())) {
+                    return;
+                }
+
+                startGoogleSignIn();
+            });
+        }
+    }
+
+    private void startGoogleSignIn() {
+        try {
+            CredentialManager credentialManager = CredentialManager.create(this);
+
+            GetGoogleIdOption googleOption =
+                new GetGoogleIdOption.Builder()
+                    .setServerClientId("508864868237-5b7rb77jchgen89fteepkma1i65g7epr.apps.googleusercontent.com")
+                    .setFilterByAuthorizedAccounts(false)
+                    .build();
+
+            GetCredentialRequest request =
+                new GetCredentialRequest.Builder()
+                    .addCredentialOption(googleOption)
+                    .build();
+
+            Executor mainExecutor = command -> mainHandler.post(command);
+
+            credentialManager.getCredentialAsync(
+                this,
+                request,
+                null,
+                mainExecutor,
+                new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+                    @Override
+                    public void onResult(GetCredentialResponse result) {
+                        try {
+                            Credential credential = result.getCredential();
+
+                            if (credential instanceof CustomCredential &&
+                                GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(
+                                    credential.getType())) {
+
+                                GoogleIdTokenCredential googleCredential =
+                                    GoogleIdTokenCredential.createFrom(
+                                        ((CustomCredential) credential).getData()
+                                    );
+
+                                String token = googleCredential.getIdToken();
+
+                                webView.evaluateJavascript(
+                                    "window.handleNativeGoogleToken(" +
+                                    org.json.JSONObject.quote(token) + ");",
+                                    null
+                                );
+                            } else {
+                                Toast.makeText(MainActivity.this,
+                                    "Google account not supported",
+                                    Toast.LENGTH_LONG).show();
+                            }
+                        } catch (Exception e) {
+                            Toast.makeText(MainActivity.this,
+                                "Google sign-in could not be completed",
+                                Toast.LENGTH_LONG).show();
+                        }
+                    }
+
+                    @Override
+                    public void onError(GetCredentialException e) {
+                        Toast.makeText(MainActivity.this,
+                            "Google sign-in cancelled or failed. Please try again.",
+                            Toast.LENGTH_LONG).show();
+                    }
+                }
+            );
+        } catch (Exception e) {
+            Toast.makeText(this, "Unable to start Google sign-in",
+                Toast.LENGTH_LONG).show();
         }
     }
 

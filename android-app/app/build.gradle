@@ -2,6 +2,8 @@ plugins {
     id 'com.android.application'
 }
 
+def keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+
 android {
     namespace 'com.nrpstore.app'
     compileSdk 35
@@ -13,4 +15,29 @@ android {
         versionCode 1
         versionName '1.0'
     }
+
+    signingConfigs {
+        if (keystorePath) {
+            release {
+                storeFile file(keystorePath)
+                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            if (keystorePath) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.credentials:credentials:1.5.0'
+    implementation 'androidx.credentials:credentials-play-services-auth:1.5.0'
+    implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.1'
 }

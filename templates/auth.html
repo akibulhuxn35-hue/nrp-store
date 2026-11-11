@@ -57,37 +57,61 @@
    </div>
    <script src="https://accounts.google.com/gsi/client" async defer></script>
    <script>
+   window.handleNativeGoogleToken = async function(token) {
+     const message = document.getElementById("google-message");
+     message.style.color = "#d33";
+     message.textContent = "Verifying Google account...";
+
+     try {
+       const result = await fetch("/google/callback", {
+         method: "POST",
+         headers: {"Content-Type": "application/json"},
+         credentials: "same-origin",
+         body: JSON.stringify({credential: token})
+       });
+       const data = await result.json();
+
+       if (result.ok && data.success) {
+         window.location.href = data.redirect;
+       } else {
+         message.textContent = data.message || "Google login failed.";
+       }
+     } catch (error) {
+       message.textContent = "Network error. Please try again.";
+     }
+   };
+
    window.addEventListener("load", function () {
+     const container = document.getElementById("google-signin");
+
+     // Native Android sign-in inside NRP STORE APK.
+     if (window.AndroidGoogleSignIn) {
+       const button = document.createElement("button");
+       button.type = "button";
+       button.textContent = "Continue with Google";
+       button.style.cssText =
+         "padding:12px 24px;border:1px solid #aaa;border-radius:5px;background:white;color:#222;font-size:15px;";
+       button.onclick = function() {
+         document.getElementById("google-message").textContent =
+           "Opening Google account picker...";
+         window.AndroidGoogleSignIn.signInWithGoogle();
+       };
+       container.appendChild(button);
+       return;
+     }
+
+     // Existing Google sign-in for normal browsers.
      if (!window.google || !google.accounts || !google.accounts.id) return;
 
      google.accounts.id.initialize({
        client_id: {{ google_client_id|tojson }},
-       callback: async function(response) {
-         const message = document.getElementById("google-message");
-         message.style.color = "#d33";
-         message.textContent = "Verifying Google account...";
-
-         try {
-           const result = await fetch("/google/callback", {
-             method: "POST",
-             headers: {"Content-Type": "application/json"},
-             body: JSON.stringify({credential: response.credential})
-           });
-           const data = await result.json();
-
-           if (result.ok && data.success) {
-             window.location.href = data.redirect;
-           } else {
-             message.textContent = data.message || "Google login failed.";
-           }
-         } catch (error) {
-           message.textContent = "Network error. Please try again.";
-         }
+       callback: function(response) {
+         window.handleNativeGoogleToken(response.credential);
        }
      });
 
      google.accounts.id.renderButton(
-       document.getElementById("google-signin"),
+       container,
        {theme: "outline", size: "large", text: "continue_with", shape: "rectangular", width: 280}
      );
    });
