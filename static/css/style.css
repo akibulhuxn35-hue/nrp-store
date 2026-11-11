@@ -1225,3 +1225,464 @@ input, textarea, select {
     transition-duration: .01ms !important;
   }
 }
+
+/* NRP STORE PREMIUM HOMEPAGE V2 */
+.nrp-home {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 8px 0 35px;
+}
+
+.nrp-search-section {
+    padding: 18px 0 20px;
+}
+
+.nrp-search {
+    min-height: 54px;
+    background: #fff;
+    border: 1px solid #dce6f0;
+    border-radius: 16px;
+    padding: 6px 8px 6px 16px;
+    box-shadow: 0 5px 20px rgba(16,42,67,.06);
+}
+
+.nrp-search:focus-within {
+    border-color: #2875b8;
+    box-shadow: 0 0 0 3px rgba(40,117,184,.10);
+}
+
+.nrp-search input {
+    font-size: 14px;
+}
+
+.nrp-search button {
+    min-height: 40px;
+    padding: 9px 19px;
+    border-radius: 11px;
+    background: linear-gradient(135deg,#102a43,#23618d);
+    font-weight: 700;
+}
+
+.nrp-categories {
+    gap: 17px;
+    padding: 12px 2px 23px;
+    scrollbar-width: none;
+}
+
+.nrp-categories::-webkit-scrollbar {
+    display: none;
+}
+
+.nrp-category {
+    min-width: 72px;
+    font-weight: 600;
+    transition: transform .2s ease;
+}
+
+.nrp-category:hover {
+    transform: translateY(-3px);
+}
+
+.nrp-category span {
+    width: 58px;
+    height: 58px;
+    background: linear-gradient(145deg,#f1f7fc,#e5eff8);
+    border: 1px solid #e0eaf3;
+    color: #17476d;
+}
+
+.nrp-category.selected span {
+    background: #dcecf9;
+    outline: 2px solid #23618d;
+}
+
+.nrp-hero {
+    min-height: 275px;
+    position: relative;
+    isolation: isolate;
+    padding: 35px 7%;
+    border: 1px solid #285a7e;
+    border-radius: 23px;
+    background:
+        radial-gradient(circle at 85% 20%,rgba(255,255,255,.16),transparent 28%),
+        linear-gradient(120deg,#0d2942 0%,#174d73 58%,#2877a5 100%);
+    box-shadow: 0 14px 32px rgba(16,42,67,.16);
+}
+
+.nrp-hero::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    width: 230px;
+    height: 230px;
+    right: 4%;
+    top: 20px;
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 50%;
+    box-shadow: 0 0 0 25px rgba(255,255,255,.035),
+                0 0 0 50px rgba(255,255,255,.025);
+}
+
+.nrp-hero-label {
+    display: inline-block;
+    padding: 6px 11px;
+    border: 1px solid rgba(255,255,255,.22);
+    border-radius: 30px;
+    background: rgba(255,255,255,.09);
+}
+
+.nrp-hero h1 {
+    font-weight: 800;
+    letter-spacing: -.8px;
+}
+
+.nrp-hero p {
+    max-width: 390px;
+    line-height: 1.7;
+}
+
+.nrp-shop-btn {
+    padding: 12px 19px;
+    border-radius: 11px;
+    box-shadow: 0 5px 15px rgba(0,0,0,.12);
+    transition: transform .2s ease,background .2s ease;
+}
+
+.nrp-shop-btn:hover {
+    background: #eaf4fc;
+    transform: translateY(-2px);
+}
+
+.nrp-hero-art {
+    position: relative;
+    z-index: 1;
+    padding-right: 12px;
+}
+
+.nrp-benefits {
+    gap: 13px;
+    margin: 22px 0 40px;
+}
+
+.nrp-benefits div {
+    min-height: 65px;
+    padding: 13px 9px;
+    border-color: #e4edf5;
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(16,42,67,.045);
+}
+
+.nrp-benefits b {
+    color: #29445e;
+}
+
+.nrp-heading {
+    margin-bottom: 21px;
+}
+
+.nrp-heading h2 {
+    font-weight: 800;
+    letter-spacing: -.5px;
+}
+
+.nrp-product-count {
+    padding: 6px 11px;
+    border-radius: 20px;
+    background: #edf4fa;
+    color: #345b7b;
+    font-weight: 700;
+}
+
+.nrp-product-grid {
+    gap: 19px;
+}
+
+.nrp-product-card {
+    position: relative;
+    border-color: #e4ebf2;
+    border-radius: 17px;
+    box-shadow: 0 5px 18px rgba(16,42,67,.055);
+    transition: transform .22s ease,box-shadow .22s ease;
+}
+
+.nrp-product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 27px rgba(16,42,67,.12);
+}
+
+.nrp-product-image {
+    height: 205px;
+    background: linear-gradient(145deg,#f8fbfe,#edf3f8);
+}
+
+.nrp-product-image img {
+    transition: transform .3s ease;
+}
+
+.nrp-product-card:hover .nrp-product-image img {
+    transform: scale(1.045);
+}
+
+.nrp-product-info {
+    padding: 15px;
+}
+
+.nrp-product-info h3 {
+    min-height: 40px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.nrp-product-bottom strong {
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.nrp-add-btn {
+    padding: 9px 13px;
+    border-radius: 9px;
+    background: linear-gradient(135deg,#102a43,#23618d);
+    font-weight: 700;
+    transition: transform .2s ease;
+}
+
+.nrp-add-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+}
+
+.nrp-featured-tag {
+    background: #e8f2fb;
+    color: #17476d;
+}
+
+.nrp-stock-note {
+    font-weight: 600;
+}
+
+.nrp-product-card .wishlist-form {
+    position: absolute;
+    z-index: 3;
+    top: 10px;
+    right: 10px;
+}
+
+.nrp-product-card .wishlist-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid #e4ebf2;
+    border-radius: 50%;
+    background: rgba(255,255,255,.96);
+    color: #d04c65;
+    font-size: 20px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.08);
+}
+
+.nrp-empty {
+    background: #f7fafd;
+    border: 1px dashed #cbd9e6;
+    border-radius: 16px;
+}
+
+@media(max-width:760px) {
+    .nrp-home {
+        padding-top: 2px;
+    }
+
+    .nrp-search-section {
+        padding-top: 12px;
+    }
+
+    .nrp-hero {
+        min-height: 220px;
+        padding: 23px 19px;
+        border-radius: 18px;
+    }
+
+    .nrp-hero-art {
+        padding-right: 0;
+        font-size: clamp(58px,15vw,88px);
+    }
+
+    .nrp-hero::after {
+        width: 145px;
+        height: 145px;
+        right: 0;
+        top: 35px;
+    }
+
+    .nrp-benefits {
+        gap: 7px;
+        margin: 17px 0 30px;
+    }
+
+    .nrp-benefits div {
+        min-height: 72px;
+        border-radius: 12px;
+    }
+
+    .nrp-benefits b {
+        font-size: 10px;
+    }
+
+    .nrp-product-grid {
+        gap: 12px;
+    }
+
+    .nrp-product-image {
+        height: 165px;
+    }
+
+    .nrp-product-info {
+        padding: 11px;
+    }
+
+    .nrp-product-info h3 {
+        font-size: 13px;
+        min-height: 37px;
+    }
+
+    .nrp-product-bottom {
+        flex-wrap: wrap;
+    }
+
+    .nrp-add-btn {
+        padding: 8px 10px;
+    }
+}
+
+@media(max-width:380px) {
+    .nrp-hero {
+        min-height: 195px;
+        padding: 19px 14px;
+    }
+
+    .nrp-hero h1 {
+        font-size: 23px;
+    }
+
+    .nrp-product-image {
+        height: 140px;
+    }
+}
+
+/* NRP STORE PREMIUM PURPLE BLUE THEME */
+:root {
+    --nrp-purple: #5715e8;
+    --nrp-blue: #075cff;
+    --nrp-yellow: #ffcf32;
+}
+
+.nrp-search {
+    border: 1px solid #dedbff;
+    border-radius: 30px;
+    background: #f8f7ff;
+}
+
+.nrp-search button,
+.nrp-add-btn {
+    background: linear-gradient(135deg, #6818ed, #3210c9);
+    color: #fff;
+    border-radius: 12px;
+}
+
+.nrp-category span {
+    background: linear-gradient(145deg, #f5efff, #e9edff);
+    border: 1px solid #e3ddff;
+}
+
+.nrp-category.selected span {
+    background: linear-gradient(135deg, #6719ed, #1765ff);
+    color: #fff;
+    outline: 2px solid #c9b5ff;
+}
+
+.nrp-hero {
+    background:
+        radial-gradient(circle at 80% 20%, rgba(255,255,255,.2), transparent 28%),
+        linear-gradient(115deg, #5910c9 0%, #173ee9 55%, #0879ff 100%);
+    border: none;
+    border-radius: 22px;
+    box-shadow: 0 14px 32px rgba(73, 31, 190, .23);
+}
+
+.nrp-hero-label {
+    background: linear-gradient(90deg, #a32cff, #087cff);
+    border: 1px solid rgba(255,255,255,.3);
+    font-weight: 800;
+}
+
+.nrp-shop-btn {
+    background: #ffcf32;
+    color: #17112d;
+    border-radius: 30px;
+    font-weight: 800;
+}
+
+.nrp-shop-btn:hover {
+    background: #ffe17b;
+    color: #17112d;
+}
+
+.nrp-hero-art {
+    filter: drop-shadow(0 12px 15px rgba(0,0,0,.2));
+}
+
+.nrp-benefits div {
+    background: #f0edff;
+    border: 1px solid #e5dfff;
+    border-radius: 15px;
+}
+
+.nrp-benefits b {
+    color: #21134f;
+}
+
+.nrp-kicker {
+    color: #5715e8;
+    font-weight: 800;
+}
+
+.nrp-heading h2 {
+    color: #171044;
+}
+
+.nrp-product-count {
+    background: #5715e8;
+    color: #fff;
+    border-radius: 25px;
+}
+
+.nrp-product-card {
+    border: 1px solid #e6e1f5;
+    border-radius: 17px;
+    box-shadow: 0 5px 20px rgba(54, 24, 120, .07);
+}
+
+.nrp-product-image {
+    background: linear-gradient(145deg, #fff, #f5f2ff);
+}
+
+.nrp-product-bottom strong {
+    color: #21134f;
+}
+
+.nrp-featured-tag {
+    background: #12a84a;
+    color: #fff;
+    border-radius: 20px;
+}
+
+.nrp-product-card .wishlist-btn {
+    color: #3210a8;
+    border-color: #e5dfff;
+}
+
+.nrp-add-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #813aff, #075cff);
+}
+
+@media(max-width:760px) {
+    .nrp-hero {
+        background: linear-gradient(125deg, #5910c9, #1749ed 65%, #0879ff);
+    }
+}
