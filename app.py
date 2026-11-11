@@ -1,4 +1,4 @@
-import os, sqlite3, secrets, hashlib, hmac, smtplib, io, csv, math
+import os, sqlite3, secrets, hashlib, hmac, smtplib, io, csv, math, zipfile, posixpath
 import json, urllib.request, urllib.error, urllib.parse
 import requests
 import cloudinary.uploader
@@ -2065,6 +2065,190 @@ def admin_import_products():
         conn.rollback()
         app.logger.exception("CSV product import failed")
         flash("CSV import failed. Please check your file.", "danger")
+
+    return redirect(url_for("admin"))
+
+
+@app.route("/admin/products/import-zip", methods=["POST"])
+@admin_required
+def admin_import_products_zip():
+    uploaded = request.files.get("zip_file")
+    if not uploaded or not uploaded.filename.lower().endswith(".zip"):
+        flash("Please select a ZIP file.", "danger")
+        return redirect(url_for("admin"))
+
+    raw = uploaded.stream.read(40 * 1024 * 1024 + 1)
+    if len(raw) > 40 * 1024 * 1024:
+        flash("ZIP file must be 40 MB or smaller.", "danger")
+        return redirect(url_for("admin"))
+
+    if not os.environ.get("CLOUDINARY_URL"):
+        flash("Cloudinary storage is not configured.", "danger")
+        return redirect(url_for("admin"))
+
+    conn = db()
+    owner_id = session["user"]["id"]
+
+    try:
+        archive = zipfile.ZipFile(io.BytesIO(raw))
+        if len(archive.infolist()) > 5000:
+            raise ValueError("ZIP contains too many files (maximum 5000).")
+        members = {}
+        total_size = 0
+
+        for info in archive.infolist():
+            name = info.filename
+            if "\\" in name or name.startswith("/"):
+                raise ValueError("Unsafe ZIP path.")
+
+            normalized = posixpath.normpath(name)
+            if normalized.startswith("../") or normalized == "..":
+                raise ValueError("Unsafe ZIP path.")
+
+            if normalized.casefold() != "products.csv" and not normalized.casefold().startswith("images/"):
+                raise ValueError("ZIP may contain only products.csv and images/ files.")
+
+            if info.flag_bits & 1:
+                raise ValueError("Encrypted ZIP files are not supported.")
+
+            mode = (info.external_attr >> 16) & 0o170000
+            if mode == 0o120000:
+                raise ValueError("ZIP symbolic links are not allowed.")
+
+            if info.is_dir():
+                continue
+
+            key = normalized.casefold()
+            if key in members:
+                raise ValueError("Duplicate filenames in ZIP.")
+
+            total_size += info.file_size
+            if total_size > 120 * 1024 * 1024:
+                raise ValueError("ZIP expanded size exceeds 120 MB.")
+
+            members[key] = info
+
+        csv_info = members.get("products.csv")
+        if not csv_info or csv_info.file_size > 2 * 1024 * 1024:
+            raise ValueError("ZIP needs a root products.csv under 2 MB.")
+
+        csv_raw = archive.read(csv_info)
+        reader = csv.DictReader(io.StringIO(csv_raw.decode("utf-8-sig")))
+        headers = {str(h).strip().lower() for h in (reader.fieldnames or [])}
+
+        if not {"name", "price", "image_folder"}.issubset(headers):
+            raise ValueError("CSV needs name, price and image_folder columns.")
+
+        rows = list(reader)
+        if len(rows) > 500:
+            raise ValueError("Maximum 500 products per ZIP.")
+
+        imported = 0
+        skipped = 0
+        seen = set()
+        allowed = (".jpg", ".jpeg", ".png", ".webp", ".gif")
+
+        for original_row in rows:
+            row = {
+                str(k).strip().lower(): (v or "").strip()
+                for k, v in original_row.items() if k is not None
+            }
+            name = row.get("name", "")
+            folder = row.get("image_folder", "")
+
+            if (not name or name.casefold() in seen or
+                (folder and (
+                    folder in (".", "..") or "/" in folder or
+                    "\\" in folder or
+                    not all(c.isalnum() or c in "_- " for c in folder)
+                ))):
+                skipped += 1
+                continue
+
+            try:
+                price = float(row.get("price", ""))
+                stock = int(row.get("stock") or 10)
+                if not math.isfinite(price) or price < 0 or stock < 0:
+                    raise ValueError
+            except (ValueError, TypeError):
+                skipped += 1
+                continue
+
+            exists = conn.execute(
+                "SELECT id FROM products WHERE owner_id=? AND LOWER(name)=LOWER(?)",
+                (owner_id, name)
+            ).fetchone()
+            seen.add(name.casefold())
+
+            if exists:
+                skipped += 1
+                continue
+
+            photo_infos = []
+            if folder:
+                prefix = ("images/" + folder + "/").casefold()
+                photo_infos = [
+                    info for key, info in members.items()
+                    if key.startswith(prefix)
+                    and "/" not in key[len(prefix):]
+                    and key.endswith(allowed)
+                ]
+
+            if len(photo_infos) > 7:
+                skipped += 1
+                continue
+
+            photo_urls = []
+            try:
+                for info in sorted(photo_infos, key=lambda x: x.filename.casefold()):
+                    if info.file_size > 8 * 1024 * 1024:
+                        raise ValueError("Photo exceeds 8 MB.")
+
+                    data = archive.read(info)
+                    ext = posixpath.splitext(info.filename.lower())[1]
+                    valid = (
+                        (ext in (".jpg", ".jpeg") and data.startswith(b"\xff\xd8\xff")) or
+                        (ext == ".png" and data.startswith(b"\x89PNG\r\n\x1a\n")) or
+                        (ext == ".gif" and data.startswith((b"GIF87a", b"GIF89a"))) or
+                        (ext == ".webp" and data.startswith(b"RIFF") and data[8:12] == b"WEBP")
+                    )
+                    if not valid:
+                        raise ValueError("Invalid image file.")
+
+                    result = cloudinary.uploader.upload(
+                        io.BytesIO(data),
+                        folder="nrp-store/products",
+                        resource_type="image"
+                    )
+                    photo_urls.append(result["secure_url"])
+
+            except Exception:
+                app.logger.exception("ZIP photo upload failed")
+                skipped += 1
+                continue
+
+            main_image = photo_urls[0] if photo_urls else ""
+            conn.execute(
+                """INSERT INTO products
+                (name,description,price,category,image,images,stock,featured,owner_id)
+                VALUES(?,?,?,?,?,?,?,?,?)""",
+                (
+                    name, row.get("description", ""), price,
+                    row.get("category") or "General", main_image,
+                    json.dumps(photo_urls), stock,
+                    1 if row.get("featured", "").lower() in ("1", "yes", "true") else 0,
+                    owner_id
+                )
+            )
+            imported += 1
+
+        conn.commit()
+        flash(f"ZIP import complete: {imported} imported, {skipped} skipped.", "success")
+
+    except Exception:
+        conn.rollback()
+        app.logger.exception("ZIP product import failed")
+        flash("ZIP import failed. Check ZIP structure and CSV columns.", "danger")
 
     return redirect(url_for("admin"))
 

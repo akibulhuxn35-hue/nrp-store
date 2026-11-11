@@ -21,6 +21,15 @@
 <p class="muted">Required: name, price. Optional: description, category, image_url, stock, featured.</p>
 <p class="muted">Maximum 500 products per file. Duplicate products are skipped.</p>
 </div>
+<div class="panel" style="margin:20px 0">
+<h2>📦 Import Products (ZIP + Photos)</h2>
+<form method="post" action="{{ url_for('admin_import_products_zip') }}" enctype="multipart/form-data" class="stack-form">
+<label>Select ZIP File<input type="file" name="zip_file" accept=".zip,application/zip" required></label>
+<button class="btn btn-gold full" type="submit">Import ZIP Products</button>
+</form>
+<p class="muted">ZIP must contain products.csv and images/ folders.</p>
+<p class="muted">Maximum 500 products per ZIP and 7 photos per product.</p>
+</div>
 <div class="panel"><h2>📦 Products</h2>{% for p in products %}<div class="admin-row"><div><b>{{ p.name }}</b><small>₹{{ '%.2f'|format(p.price) }} · Stock {{ p.stock }}</small></div><a class="mini-btn" href="{{ url_for('admin_edit_product',pid=p.id) }}">Edit</a><form method="post" action="{{ url_for('admin_delete_product',pid=p.id) }}" onsubmit="return confirm('Delete this product?')"><button class="delete-btn">Delete</button></form></div>{% endfor %}</div></div>
 
 <div class="panel orders-panel" id="orders-panel">
