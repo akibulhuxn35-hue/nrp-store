@@ -1,63 +1,107 @@
 {% extends "base.html" %}
 {% block title %}{{ 'Create Account' if mode=='register' else 'Login' }} — NRP STORE{% endblock %}
 {% block content %}
-
 <style>
-.auth-page{min-height:75vh;display:flex;align-items:center;justify-content:center;padding:35px 15px;background:#f5f7fa}
-.auth-box{width:100%;max-width:430px;background:#fff;padding:32px 25px;border-radius:18px;box-shadow:0 8px 35px #10213a12}
-.auth-logo{text-align:center;font-size:25px;font-weight:900;color:#102c52;letter-spacing:1px}
-.auth-logo span{color:#16a36a}
-.auth-tag{text-align:center;color:#718096;font-size:13px;margin:8px 0 28px}
-.auth-box h1{font-size:25px;color:#172b4d;margin-bottom:8px}
-.auth-sub{color:#718096;font-size:14px;margin-bottom:25px}
-.auth-box label{display:block;font-size:13px;font-weight:700;color:#26364d;margin:15px 0 7px}
-.auth-box input{width:100%;padding:14px;border:1px solid #dce2eb;border-radius:9px;font-size:15px;outline:none}
-.auth-box input:focus{border-color:#1769aa;box-shadow:0 0 0 3px #1769aa15}
-.auth-submit{width:100%;border:0;border-radius:9px;padding:15px;background:#1769aa;color:#fff;font-size:16px;font-weight:800;margin-top:22px;cursor:pointer}
-.auth-switch{text-align:center;margin-top:22px;color:#68778c;font-size:14px}
-.auth-switch a{color:#1769aa;font-weight:800;text-decoration:none}
-.auth-note{text-align:center;font-size:12px;color:#8994a5;margin-top:22px}
-@media(max-width:480px){.auth-page{padding:20px 12px}.auth-box{padding:27px 20px}}
+.auth-page{min-height:78vh;background:#f1f5fb;padding:35px 16px;display:grid;place-items:center}
+.auth-shell{width:100%;max-width:920px;min-height:510px;display:grid;grid-template-columns:1fr 1fr;background:white;border-radius:20px;overflow:hidden;box-shadow:0 18px 55px #17365d20}
+.auth-promo{background:linear-gradient(145deg,#0755a5,#1688e8);color:white;padding:48px 35px;display:flex;flex-direction:column;justify-content:center}
+.auth-promo img{width:100px;height:85px;object-fit:contain;background:white;border-radius:15px;padding:8px;margin-bottom:25px}
+.auth-promo h2{font-size:32px;line-height:1.2;margin:0 0 15px}
+.auth-promo p{color:#e2efff;font-size:14px;line-height:1.8}
+.auth-benefit{margin-top:28px;font-size:13px;line-height:2.4}
+.auth-panel{padding:45px 38px;display:flex;flex-direction:column;justify-content:center}
+.auth-brand{font-weight:900;font-size:23px;color:#123c70;margin-bottom:25px}
+.auth-brand span{color:#1684df}
+.auth-panel h1{font-size:27px;color:#172b4d;margin:0 0 8px}
+.auth-sub{font-size:13px;color:#75849a;margin:0 0 25px}
+.auth-panel label{display:block;font-size:13px;font-weight:700;color:#34445b;margin:16px 0 7px}
+.auth-panel input{width:100%;padding:14px;border:1px solid #dce4ef;border-radius:9px;font-size:15px;outline:none;background:#fbfdff}
+.auth-panel input:focus{border-color:#1684df;box-shadow:0 0 0 3px #1684df18}
+.auth-submit{width:100%;border:0;border-radius:9px;padding:15px;background:#176fc1;color:white;font-weight:800;margin-top:23px;cursor:pointer}
+.auth-submit:hover{background:#0755a5}
+.auth-switch{text-align:center;margin-top:22px;font-size:13px;color:#718096}
+.auth-switch a,.auth-forgot a{color:#0873c7;font-weight:800}
+.auth-forgot{text-align:right;margin-top:12px;font-size:12px}
+.auth-note{text-align:center;color:#98a4b5;font-size:11px;margin-top:24px}
+@media(max-width:650px){.auth-shell{grid-template-columns:1fr;max-width:440px}.auth-promo{padding:25px 25px}.auth-promo img{width:70px;height:60px;margin-bottom:12px}.auth-promo h2{font-size:23px}.auth-promo p{margin:5px 0}.auth-benefit{display:none}.auth-panel{padding:30px 24px}}
 </style>
-
 <div class="auth-page">
- <div class="auth-box">
-  <div class="auth-logo">NRP <span>STORE</span></div>
-  <div class="auth-tag">SHOP SMART. LIVE BETTER.</div>
+ <div class="auth-shell">
+  <section class="auth-promo">
+   <img src="{{ url_for('static', filename='images/nrp-logo.png') }}" alt="NRP STORE">
+   <h2>Shopping made simple.</h2>
+   <p>Discover great products, enjoy a smooth shopping experience and get more from every order.</p>
+   <div class="auth-benefit">✓ Easy account access<br>✓ Track your orders<br>✓ Shop with confidence</div>
+  </section>
+  <section class="auth-panel">
+   <div class="auth-brand">NRP <span>STORE</span></div>
+   <h1>{{ 'Create your account' if mode=='register' else 'Welcome back!' }}</h1>
+   <p class="auth-sub">{{ 'Join NRP STORE and start shopping.' if mode=='register' else 'Sign in to continue your shopping journey.' }}</p>
+   <form method="post" class="stack-form">
+    {% if mode=='register' %}
+    <label>Full name</label>
+    <input name="name" placeholder="Enter your full name" required autocomplete="name">
+    {% endif %}
+    <label>Email address</label>
+    <input name="email" type="email" placeholder="Enter your email" required autocomplete="email">
+    <label>Password</label>
+    <input name="password" type="password" {% if mode=="register" %}minlength="8"{% endif %} placeholder="Enter your password" required autocomplete="{{ 'new-password' if mode=='register' else 'current-password' }}">
+    <button type="submit" class="auth-submit">{{ 'CREATE ACCOUNT' if mode=='register' else 'LOGIN SECURELY' }} →</button>
+   </form>
 
-  <h1>{{ 'Create your account' if mode=='register' else 'Welcome back!' }}</h1>
-  <p class="auth-sub">{{ 'Join NRP STORE and discover something special.' if mode=='register' else 'Sign in to continue shopping.' }}</p>
+   {% if mode != 'register' and google_client_id %}
+   <div style="text-align:center;margin-top:22px">
+    <div style="color:#8793a5;font-size:12px;margin-bottom:14px">OR CONTINUE WITH</div>
+    <div id="google-signin" style="display:flex;justify-content:center"></div>
+    <p id="google-message" style="font-size:12px;color:#d33;margin-top:10px"></p>
+   </div>
+   <script src="https://accounts.google.com/gsi/client" async defer></script>
+   <script>
+   window.addEventListener("load", function () {
+     if (!window.google || !google.accounts || !google.accounts.id) return;
 
-  <form method="post" class="stack-form">
-   {% if mode=='register' %}
-   <label>Full name</label>
-   <input name="name" placeholder="Enter your full name" required autocomplete="name">
+     google.accounts.id.initialize({
+       client_id: {{ google_client_id|tojson }},
+       callback: async function(response) {
+         const message = document.getElementById("google-message");
+         message.style.color = "#d33";
+         message.textContent = "Verifying Google account...";
+
+         try {
+           const result = await fetch("/google/callback", {
+             method: "POST",
+             headers: {"Content-Type": "application/json"},
+             body: JSON.stringify({credential: response.credential})
+           });
+           const data = await result.json();
+
+           if (result.ok && data.success) {
+             window.location.href = data.redirect;
+           } else {
+             message.textContent = data.message || "Google login failed.";
+           }
+         } catch (error) {
+           message.textContent = "Network error. Please try again.";
+         }
+       }
+     });
+
+     google.accounts.id.renderButton(
+       document.getElementById("google-signin"),
+       {theme: "outline", size: "large", text: "continue_with", shape: "rectangular", width: 280}
+     );
+   });
+   </script>
    {% endif %}
-
-   <label>Email address</label>
-   <input name="email" type="email" placeholder="Enter your email" required autocomplete="email">
-
-   <label>Password</label>
-   <input name="password" type="password" {% if mode=="register" %}minlength="8"{% endif %} placeholder="Enter your password" required autocomplete="{{ 'new-password' if mode=='register' else 'current-password' }}">
-
-   <button type="submit" class="auth-submit">{{ 'CREATE ACCOUNT' if mode=='register' else 'LOGIN SECURELY' }} →</button>
-  </form>
-
-  {% if mode != 'register' %}
-  <div class="auth-switch" style="text-align:right;margin-top:12px">
-   <a href="{{ url_for('forgot_password') }}">Forgot Password?</a>
-  </div>
-  {% endif %}
-
-  <div class="auth-switch">
-   {% if mode=='register' %}
-   Already have an account? <a href="{{ url_for('login') }}">Login</a>
-   {% else %}
-   New to NRP STORE? <a href="{{ url_for('register') }}">Create account</a>
+   {% if mode != 'register' %}
+   <div class="auth-forgot"><a href="{{ url_for('forgot_password') }}">Forgot Password?</a></div>
    {% endif %}
-  </div>
-
-  <div class="auth-note">Your shopping journey starts here.</div>
+   <div class="auth-switch">
+    {% if mode=='register' %}Already have an account? <a href="{{ url_for('login') }}">Login</a>
+    {% else %}New to NRP STORE? <a href="{{ url_for('register') }}">Create account</a>{% endif %}
+   </div>
+   <div class="auth-note">Your shopping journey starts here. © NRP STORE</div>
+  </section>
  </div>
 </div>
 {% endblock %}
