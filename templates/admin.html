@@ -12,6 +12,15 @@
 </div>
 
 <div class="admin-grid"><div class="panel"><h2>Add a product</h2><form method="post" action="{{ url_for('admin_add_product') }}" class="stack-form" enctype="multipart/form-data"><label>Product name<input name="name" required></label><label>Description<textarea name="description" rows="3"></textarea></label><div class="two-fields"><label>Price (₹)<input type="number" name="price" min="0" step=".01" required></label><label>Stock<input type="number" name="stock" min="0" value="10" required></label></div><label>Category<input name="category" value="General"></label><label>Product Photos (Select up to 7)<input type="file" name="images" accept="image/*" multiple></label><label class="check-label"><input type="checkbox" name="featured"> Feature this product</label><button class="btn btn-gold full">Add product</button></form></div>
+<div class="panel" style="margin:20px 0">
+<h2>📥 Import Products (CSV)</h2>
+<form method="post" action="{{ url_for('admin_import_products') }}" enctype="multipart/form-data" class="stack-form">
+<label>Select CSV File<input type="file" name="csv_file" accept=".csv,text/csv" required></label>
+<button class="btn btn-gold full" type="submit">Import Products</button>
+</form>
+<p class="muted">Required: name, price. Optional: description, category, image_url, stock, featured.</p>
+<p class="muted">Maximum 500 products per file. Duplicate products are skipped.</p>
+</div>
 <div class="panel"><h2>📦 Products</h2>{% for p in products %}<div class="admin-row"><div><b>{{ p.name }}</b><small>₹{{ '%.2f'|format(p.price) }} · Stock {{ p.stock }}</small></div><a class="mini-btn" href="{{ url_for('admin_edit_product',pid=p.id) }}">Edit</a><form method="post" action="{{ url_for('admin_delete_product',pid=p.id) }}" onsubmit="return confirm('Delete this product?')"><button class="delete-btn">Delete</button></form></div>{% endfor %}</div></div>
 
 <div class="panel orders-panel" id="orders-panel">

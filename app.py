@@ -1,5 +1,5 @@
-import os, sqlite3, secrets, hashlib, hmac, smtplib, io
-import json, urllib.request, urllib.error
+import os, sqlite3, secrets, hashlib, hmac, smtplib, io, csv, math
+import json, urllib.request, urllib.error, urllib.parse
 import requests
 import cloudinary.uploader
 import psycopg
@@ -1972,6 +1972,100 @@ def admin_assign_delivery(oid):
     )
     conn.commit()
     flash("Delivery boy assigned successfully.", "success")
+    return redirect(url_for("admin"))
+
+
+@app.route("/admin/products/import", methods=["POST"])
+@admin_required
+def admin_import_products():
+    uploaded = request.files.get("csv_file")
+    if not uploaded or not uploaded.filename.lower().endswith(".csv"):
+        flash("Please select a CSV file.", "danger")
+        return redirect(url_for("admin"))
+
+    raw = uploaded.stream.read(2 * 1024 * 1024 + 1)
+    if len(raw) > 2 * 1024 * 1024:
+        flash("CSV file must be smaller than 2 MB.", "danger")
+        return redirect(url_for("admin"))
+
+    conn = db()
+    owner_id = session["user"]["id"]
+
+    try:
+        reader = csv.DictReader(io.StringIO(raw.decode("utf-8-sig")))
+        headers = {str(h).strip().lower() for h in (reader.fieldnames or [])}
+
+        if not {"name", "price"}.issubset(headers):
+            flash("CSV needs name and price columns.", "danger")
+            return redirect(url_for("admin"))
+
+        imported = 0
+        skipped = 0
+        seen = set()
+
+        for number, row in enumerate(reader, start=2):
+            if number > 501:
+                skipped += 1
+                break
+
+            row = {
+                str(k).strip().lower(): (v or "").strip()
+                for k, v in row.items() if k is not None
+            }
+
+            name = row.get("name", "")
+            if not name or name.casefold() in seen:
+                skipped += 1
+                continue
+
+            try:
+                price = float(row.get("price", ""))
+                stock = int(row.get("stock") or 10)
+                if not math.isfinite(price) or price < 0 or stock < 0:
+                    raise ValueError
+            except (ValueError, TypeError):
+                skipped += 1
+                continue
+
+            image = row.get("image_url") or row.get("image") or ""
+            if image:
+                parsed = urllib.parse.urlparse(image)
+                if parsed.scheme not in ("http", "https") or not parsed.netloc:
+                    skipped += 1
+                    continue
+
+            exists = conn.execute(
+                "SELECT id FROM products WHERE owner_id=? AND LOWER(name)=LOWER(?)",
+                (owner_id, name)
+            ).fetchone()
+
+            seen.add(name.casefold())
+            if exists:
+                skipped += 1
+                continue
+
+            conn.execute(
+                """INSERT INTO products
+                (name,description,price,category,image,images,stock,featured,owner_id)
+                VALUES(?,?,?,?,?,?,?,?,?)""",
+                (
+                    name, row.get("description", ""), price,
+                    row.get("category") or "General", image,
+                    json.dumps([image] if image else []), stock,
+                    1 if row.get("featured", "").lower() in ("1", "yes", "true") else 0,
+                    owner_id
+                )
+            )
+            imported += 1
+
+        conn.commit()
+        flash(f"Imported {imported} products. Skipped {skipped} rows.", "success")
+
+    except Exception:
+        conn.rollback()
+        app.logger.exception("CSV product import failed")
+        flash("CSV import failed. Please check your file.", "danger")
+
     return redirect(url_for("admin"))
 
 
