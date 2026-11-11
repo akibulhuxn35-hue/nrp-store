@@ -2,38 +2,60 @@
 {% block title %}{{ product.name }} | NRP STORE{% endblock %}
 {% block meta_description %}{{ (product.description or ('Shop ' ~ product.name ~ ' at NRP STORE.'))|striptags|truncate(155, True, '') }}{% endblock %}
 {% block og_description %}{{ (product.description or ('Shop ' ~ product.name ~ ' at NRP STORE.'))|striptags|truncate(155, True, '') }}{% endblock %}
+
 {% block content %}
 <div class="detail-layout">
-  <div class="detail-image">
-    {% if gallery_images %}
-      <img id="mainProductImage" src="{{ gallery_images[0] }}" alt="{{ product.name }}">
-      {% if gallery_images|length > 1 %}
-      <div class="product-thumbnails">
-        {% for photo in gallery_images %}
-        <button type="button" class="product-thumb {% if loop.first %}active{% endif %}"
-                onclick="changeProductImage(this, '{{ photo }}')">
-          <img src="{{ photo }}" alt="{{ product.name }} photo {{ loop.index }}">
-        </button>
-        {% endfor %}
-      </div>
+
+  <div class="detail-gallery">
+    <div class="detail-image">
+      {% if gallery_images %}
+        <img id="mainProductImage"
+             src="{{ gallery_images[0] }}"
+             alt="{{ product.name }}">
+      {% elif product.image %}
+        <img id="mainProductImage"
+             src="{{ product.image }}"
+             alt="{{ product.name }}">
+      {% else %}
+        <div class="detail-no-image">📦 Product Image</div>
       {% endif %}
-    {% else %}
-      <img src="{{ product.image }}" alt="{{ product.name }}">
+    </div>
+
+    {% if gallery_images|length > 1 %}
+    <div class="product-thumbnails">
+      {% for photo in gallery_images %}
+      <button type="button"
+              class="product-thumb {% if loop.first %}active{% endif %}"
+              data-image="{{ photo|e }}"
+              aria-label="View product image {{ loop.index }}">
+        <img src="{{ photo }}" alt="{{ product.name }} photo {{ loop.index }}">
+      </button>
+      {% endfor %}
+    </div>
     {% endif %}
   </div>
-  <div class="detail-copy">
-    <span class="eyebrow">{{ product.category }}</span>
-    <h1>{{ product.name }}</h1>
-    <div class="detail-price">₹{{ '%.2f'|format(product.price) }}</div>
-    <p>{{ product.description }}</p>
 
-    <p class="stock">
+  <div class="detail-copy">
+    <span class="eyebrow">{{ product.category or 'NRP STORE PRODUCT' }}</span>
+
+    <h1>{{ product.name }}</h1>
+
+    <div class="detail-price">
+      ₹{{ '%.2f'|format(product.price) }}
+    </div>
+
+    <div class="detail-stock {% if product.stock > 0 %}in-stock{% else %}out-stock{% endif %}">
       {% if product.stock > 0 %}
-        {{ product.stock }} available
+        <span>✓</span> {{ product.stock }} available
       {% else %}
-        Currently out of stock
+        <span>!</span> Currently out of stock
       {% endif %}
-    </p>
+    </div>
+
+    <div class="detail-description">
+      <h3>Product Description</h3>
+      <p>{{ product.description or 'Discover this product at NRP STORE.' }}</p>
+    </div>
 
     <div class="detail-actions">
       <form method="post"
@@ -53,18 +75,31 @@
       </form>
     </div>
 
+    <div class="detail-trust">
+      <div>🚚 <span>Delivery available</span></div>
+      <div>🔒 <span>Secure shopping</span></div>
+      <div>💜 <span>NRP STORE</span></div>
+    </div>
+
     <a class="back-link" href="{{ url_for('index') }}">← Back to shop</a>
   </div>
 </div>
-<script>
-function changeProductImage(button, imageUrl) {
-  document.getElementById("mainProductImage").src = imageUrl;
-  document.querySelectorAll(".product-thumb").forEach(
-    item => item.classList.remove("active")
-  );
-  button.classList.add("active");
-}
 
+<script>
+document.querySelectorAll(".product-thumb").forEach(button => {
+  button.addEventListener("click", function () {
+    const mainImage = document.getElementById("mainProductImage");
+    if (!mainImage) return;
+
+    mainImage.src = this.dataset.image;
+
+    document.querySelectorAll(".product-thumb").forEach(item => {
+      item.classList.remove("active");
+    });
+
+    this.classList.add("active");
+  });
+});
 </script>
 
 <script type="application/ld+json">
