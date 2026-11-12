@@ -2237,3 +2237,154 @@ input, textarea, select {
         gap: 12px;
     }
 }
+
+/* NRP STORE - Product Reviews */
+.reviews-section {
+    width: 100%;
+    margin: 45px auto 25px;
+    padding: 28px;
+    background: #101827;
+    border: 1px solid rgba(212, 175, 55, .25);
+    border-radius: 18px;
+    color: #f5f5f5;
+}
+
+.reviews-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 24px;
+}
+
+.reviews-heading h2 {
+    margin: 0;
+    color: #f5f5f5;
+}
+
+.reviews-summary {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 9px;
+    color: #cbd5e1;
+    font-size: 14px;
+}
+
+.reviews-average {
+    font-size: 20px;
+    font-weight: 800;
+    color: #f5c451;
+}
+
+.reviews-stars,
+.review-card-stars {
+    color: #f5c451;
+    letter-spacing: 2px;
+    font-size: 19px;
+}
+
+.review-form-card {
+    padding: 22px;
+    margin-bottom: 25px;
+    background: #172235;
+    border: 1px solid rgba(212, 175, 55, .2);
+    border-radius: 14px;
+}
+
+.review-form-card h3 {
+    margin: 0 0 18px;
+    color: #f5c451;
+}
+
+.review-form-card form {
+    display: grid;
+    gap: 11px;
+}
+
+.review-form-card label {
+    color: #e2e8f0;
+    font-weight: 600;
+}
+
+.review-form-card select,
+.review-form-card textarea {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid #39465b;
+    border-radius: 9px;
+    background: #101827;
+    color: #fff;
+    font: inherit;
+}
+
+.review-form-card textarea {
+    resize: vertical;
+    min-height: 110px;
+}
+
+.review-form-card button {
+    justify-self: start;
+    margin-top: 8px;
+}
+
+.review-notice {
+    color: #cbd5e1;
+    line-height: 1.7;
+    margin: 18px 0;
+}
+
+.review-notice a {
+    color: #f5c451;
+    font-weight: 700;
+}
+
+.reviews-list {
+    display: grid;
+    gap: 14px;
+}
+
+.review-card {
+    padding: 18px;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    background: #172235;
+}
+
+.review-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.review-card-top strong {
+    color: #fff;
+}
+
+.review-card p {
+    color: #dbe3ee;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.review-card small {
+    color: #94a3b8;
+}
+
+@media(max-width:600px) {
+    .reviews-section {
+        padding: 18px;
+        margin-top: 28px;
+    }
+
+    .review-form-card {
+        padding: 15px;
+    }
+
+    .review-card {
+        padding: 14px;
+    }
+}

@@ -85,6 +85,79 @@
   </div>
 </div>
 
+<section class="reviews-section" id="product-reviews">
+  <div class="reviews-heading">
+    <h2>Customer Reviews</h2>
+    <div class="reviews-summary">
+      <span class="reviews-average">{{ average_rating }} / 5</span>
+      <span class="reviews-stars">
+        {% for star in range(1, 6) %}
+          {% if average_rating >= star %}★{% else %}☆{% endif %}
+        {% endfor %}
+      </span>
+      <span>{{ review_count }} reviews</span>
+    </div>
+  </div>
+
+  {% if can_review %}
+  <div class="review-form-card">
+    <h3>{% if existing_review %}Update Your Review{% else %}Write a Review{% endif %}</h3>
+    <form method="post" action="{{ url_for('submit_product_review', product_id=product.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ review_csrf_token }}">
+
+      <label for="review-rating">Your Rating</label>
+      <select name="rating" id="review-rating" required>
+        <option value="">Select stars</option>
+        {% for star in range(5, 0, -1) %}
+        <option value="{{ star }}" {% if existing_review and existing_review.rating == star %}selected{% endif %}>
+          {{ star }} Star{% if star != 1 %}s{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+
+      <label for="review-text">Your Review</label>
+      <textarea id="review-text" name="review" rows="4"
+                maxlength="1000" required
+                placeholder="Share your experience with this product...">{{ existing_review.review if existing_review else '' }}</textarea>
+
+      <button type="submit" class="btn btn-gold">
+        {% if existing_review %}Update Review{% else %}Submit Review{% endif %}
+      </button>
+    </form>
+  </div>
+  {% elif not current_user %}
+  <p class="review-notice">
+    <a href="{{ url_for('login') }}">Sign in</a> to check your review eligibility.
+    Only customers with a delivered order can review.
+  </p>
+  {% else %}
+  <p class="review-notice">
+    Only customers with a delivered order can review this product.
+  </p>
+  {% endif %}
+
+  <div class="reviews-list">
+    {% if reviews %}
+      {% for review in reviews %}
+      <article class="review-card">
+        <div class="review-card-top">
+          <strong>{{ review.name }}</strong>
+          <span class="review-card-stars">
+            {% for star in range(1, 6) %}
+              {% if review.rating >= star %}★{% else %}☆{% endif %}
+            {% endfor %}
+          </span>
+        </div>
+        <p>{{ review.review }}</p>
+        <small>{{ review.created_at }}</small>
+      </article>
+      {% endfor %}
+    {% else %}
+      <p class="review-notice">No reviews yet. Be the first eligible customer to review this product!</p>
+    {% endif %}
+  </div>
+</section>
+
 <script>
 document.querySelectorAll(".product-thumb").forEach(button => {
   button.addEventListener("click", function () {
