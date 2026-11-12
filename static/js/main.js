@@ -45,26 +45,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }).catch(() => {});
     }
 
-    function playTouchSound() {
-        const ctx = getAudio();
-        if (!ctx || ctx.state !== "running") return;
-
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(850, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(520, ctx.currentTime + 0.045);
-
-        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.035, ctx.currentTime + 0.008);
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.06);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.065);
-    }
 
     const splash = document.getElementById("nrp-splash");
     const soundButton = document.getElementById("nrp-sound-toggle");
@@ -92,27 +72,5 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    document.addEventListener("pointerdown", event => {
-        const ctx = getAudio();
-        if (ctx && ctx.state !== "running") {
-            ctx.resume().then(() => {
-                if (!welcomePlayed) playWelcomeSound();
-            }).catch(() => {});
-        } else if (!welcomePlayed) {
-            playWelcomeSound();
-        }
 
-        const target = event.target.closest(
-            "button, a, [role='button'], input[type='submit']"
-        );
-        if (target) playTouchSound();
-    }, true);
-
-    document.addEventListener("keydown", event => {
-        if (event.key !== "Enter" && event.key !== " ") return;
-        const target = event.target.closest(
-            "button, a, [role='button'], input[type='submit']"
-        );
-        if (target) playTouchSound();
-    }, true);
 });
