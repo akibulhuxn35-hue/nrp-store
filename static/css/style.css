@@ -2388,3 +2388,49 @@ input, textarea, select {
         padding: 14px;
     }
 }
+
+/* Clickable customer review stars */
+.star-rating-input {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 7px;
+    margin: 10px 0 20px;
+}
+
+.star-rating-input input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+}
+
+.star-rating-input label {
+    color: #64748b;
+    font-size: 38px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.star-rating-input label:hover,
+.star-rating-input label:hover ~ label,
+.star-rating-input input:checked ~ label {
+    color: #f5c451;
+}
+
+.star-rating-input label:hover {
+    transform: scale(1.15);
+}
+
+.star-rating-input input:focus-visible + label {
+    outline: 2px solid #f5c451;
+    outline-offset: 4px;
+    border-radius: 4px;
+}
+
+@media (max-width: 600px) {
+    .star-rating-input label {
+        font-size: 34px;
+    }
+}
